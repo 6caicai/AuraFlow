@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="login-box" wx:if="{{!isLoggedIn}}">
+    <view class="title">用户登录</view>
+    <view class="input-group">
+      <input class="input" type="text" placeholder="请输入用户名" bindinput="onUsernameInput" value="{{username}}" />
+      <input class="input" type="password" placeholder="请输入密码" bindinput="onPasswordInput" value="{{password}}" />
+    </view>
+    <view class="remember-password">
+      <checkbox checked="{{rememberPassword}}" bindtap="onRememberPasswordChange">记住密码</checkbox>
+    </view>
+    <button class="login-btn" type="primary" bindtap="onLogin" loading="{{loading}}" disabled="{{loading}}">
+      {{loading ? '登录中...' : '登录'}}
+    </button>
+    <view class="register-link" bindtap="onRegister">还没有账号？立即注册</view>
+  </view>
+
+  <view class="user-info" wx:else>
+    <view class="avatar">
+      <image src="/images/avatar.png" mode="aspectFill"></image>
+    </view>
+    <view class="username">{{username}}</view>
+    <button class="logout-btn" type="warn" bindtap="onLogout">退出登录</button>
+  </view>
+</view> 

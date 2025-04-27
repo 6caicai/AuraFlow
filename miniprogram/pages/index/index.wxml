@@ -1,0 +1,36 @@
+<!--index.wxml-->
+<view class="container">
+  <view class="upload-section">
+    <button class="upload-btn" bindtap="chooseImage">选择图片</button>
+    <image wx:if="{{tempImagePath}}" src="{{tempImagePath}}" mode="aspectFit" class="preview-image"></image>
+  </view>
+  
+  <view class="canvas-container" wx:if="{{tempImagePath}}">
+    <canvas 
+      type="2d" 
+      id="myCanvas" 
+      class="canvas"
+      style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+      bindtouchstart="onCanvasTouchStart"
+      bindtouchmove="onCanvasTouchMove"
+      bindtouchend="onCanvasTouchEnd">
+    </canvas>
+  </view>
+  
+  <view class="control-section" wx:if="{{tempImagePath}}">
+    <text wx:if="{{isSelecting}}" class="selection-tip">请在图片上圈选要处理的区域</text>
+    <text wx:if="{{selectedArea}}" class="selection-tip">已选择区域: ({{selectedArea.x}}, {{selectedArea.y}}) - {{selectedArea.width}} x {{selectedArea.height}}</text>
+    
+    <slider min="1" max="10" value="{{distortionStrength}}" bindchange="onStrengthChange" show-value/>
+    <text>扭曲强度</text>
+    <slider min="1" max="30" value="{{animationSpeed}}" bindchange="onSpeedChange" show-value/>
+    <text>动画速度</text>
+    
+    <view class="button-group">
+      <button class="action-btn select-btn" bindtap="startSelection">{{isSelecting ? '取消选择' : '选择区域'}}</button>
+      <button class="action-btn clear-btn" bindtap="clearSelection" wx:if="{{selectedArea}}">清除选择</button>
+    </view>
+    
+    <button class="process-btn" bindtap="processImage">{{isAnimating ? '停止动画' : '生成动态效果'}}</button>
+  </view>
+</view>
