@@ -5,11 +5,11 @@
     "pages/login/login"
   ],
   "window": {
-    "backgroundColor": "#F6F6F6",
+    "backgroundColor": "#f8fafe",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F6F6F6",
+    "navigationBarBackgroundColor": "#07c160",
     "navigationBarTitleText": "图片动态效果",
-    "navigationBarTextStyle": "black"
+    "navigationBarTextStyle": "white"
   },
   "tabBar": {
     "color": "#999999",
@@ -20,14 +20,14 @@
       {
         "pagePath": "pages/index/index",
         "text": "图片处理",
-        "iconPath": "images/image.png",
-        "selectedIconPath": "images/image-selected.png"
+        "iconPath": "images/tabbar_icon_chat_default.png",
+        "selectedIconPath": "images/tabbar_icon_chat_active.png"
       },
       {
         "pagePath": "pages/login/login",
         "text": "我的",
-        "iconPath": "images/user.png",
-        "selectedIconPath": "images/user-selected.png"
+        "iconPath": "images/tabbar_icon_setting_default.png",
+        "selectedIconPath": "images/tabbar_icon_setting_active.png"
       }
     ]
   },

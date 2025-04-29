@@ -1,36 +1,90 @@
 <!--index.wxml-->
-<view class="container">
-  <view class="upload-section">
-    <button class="upload-btn" bindtap="chooseImage">选择图片</button>
-    <image wx:if="{{tempImagePath}}" src="{{tempImagePath}}" mode="aspectFit" class="preview-image"></image>
+<view class="container fade-in">
+  <view class="process-steps">
+    <view class="step {{tempImagePath ? 'step-done' : 'step-current'}}">
+      <view class="step-icon">1</view>
+      <view class="step-text">选择图片</view>
+    </view>
+    <view class="step-line"></view>
+    <view class="step {{selectedArea ? 'step-done' : (tempImagePath ? 'step-current' : '')}}">
+      <view class="step-icon">2</view>
+      <view class="step-text">选择区域</view>
+    </view>
+    <view class="step-line"></view>
+    <view class="step {{isAnimating ? 'step-done' : (selectedArea ? 'step-current' : '')}}">
+      <view class="step-icon">3</view>
+      <view class="step-text">生成效果</view>
+    </view>
+  </view>
+
+  <view class="card upload-section">
+    <view class="card-title">上传图片</view>
+    <button class="btn upload-btn" bindtap="chooseImage">
+      <text class="btn-icon">+</text>
+      <text>{{tempImagePath ? '更换图片' : '选择图片'}}</text>
+    </button>
+    <view class="preview-container" wx:if="{{tempImagePath}}">
+      <image src="{{tempImagePath}}" mode="aspectFit" class="preview-image hover-scale"></image>
+    </view>
   </view>
   
-  <view class="canvas-container" wx:if="{{tempImagePath}}">
-    <canvas 
-      type="2d" 
-      id="myCanvas" 
-      class="canvas"
-      style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
-      bindtouchstart="onCanvasTouchStart"
-      bindtouchmove="onCanvasTouchMove"
-      bindtouchend="onCanvasTouchEnd">
-    </canvas>
-  </view>
-  
-  <view class="control-section" wx:if="{{tempImagePath}}">
-    <text wx:if="{{isSelecting}}" class="selection-tip">请在图片上圈选要处理的区域</text>
-    <text wx:if="{{selectedArea}}" class="selection-tip">已选择区域: ({{selectedArea.x}}, {{selectedArea.y}}) - {{selectedArea.width}} x {{selectedArea.height}}</text>
-    
-    <slider min="1" max="10" value="{{distortionStrength}}" bindchange="onStrengthChange" show-value/>
-    <text>扭曲强度</text>
-    <slider min="1" max="30" value="{{animationSpeed}}" bindchange="onSpeedChange" show-value/>
-    <text>动画速度</text>
-    
-    <view class="button-group">
-      <button class="action-btn select-btn" bindtap="startSelection">{{isSelecting ? '取消选择' : '选择区域'}}</button>
-      <button class="action-btn clear-btn" bindtap="clearSelection" wx:if="{{selectedArea}}">清除选择</button>
+  <view class="card canvas-section" wx:if="{{tempImagePath}}">
+    <view class="card-title">编辑区域</view>
+    <view class="canvas-container">
+      <canvas 
+        type="2d" 
+        id="myCanvas" 
+        class="canvas"
+        style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+        bindtouchstart="onCanvasTouchStart"
+        bindtouchmove="onCanvasTouchMove"
+        bindtouchend="onCanvasTouchEnd">
+      </canvas>
     </view>
     
-    <button class="process-btn" bindtap="processImage">{{isAnimating ? '停止动画' : '生成动态效果'}}</button>
+    <view class="selection-info" wx:if="{{selectedArea}}">
+      <view class="info-item">
+        <text class="info-label">位置:</text>
+        <text class="info-value">({{selectedArea.x}}, {{selectedArea.y}})</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">尺寸:</text>
+        <text class="info-value">{{selectedArea.width}} x {{selectedArea.height}}</text>
+      </view>
+    </view>
+    
+    <view class="button-group">
+      <button class="btn {{isSelecting ? 'btn-active' : ''}}" bindtap="startSelection">
+        {{isSelecting ? '完成选择' : '选择区域'}}
+      </button>
+      <button class="btn btn-outline" bindtap="clearSelection" wx:if="{{selectedArea}}">清除选择</button>
+    </view>
+  </view>
+  
+  <view class="card control-section" wx:if="{{tempImagePath && selectedArea}}">
+    <view class="card-title">效果设置</view>
+    
+    <view class="slider-group">
+      <view class="slider-label">
+        <text>扭曲强度</text>
+        <text class="slider-value">{{distortionStrength}}</text>
+      </view>
+      <slider min="1" max="10" value="{{distortionStrength}}" bindchange="onStrengthChange" activeColor="{{isAnimating ? '#cccccc' : '#07c160'}}" backgroundColor="#e0e0e0" block-color="{{isAnimating ? '#999999' : '#07c160'}}" disabled="{{isAnimating}}"/>
+      
+      <view class="slider-label">
+        <text>动画速度</text>
+        <text class="slider-value">{{animationSpeed}}</text>
+      </view>
+      <slider min="1" max="30" value="{{animationSpeed}}" bindchange="onSpeedChange" activeColor="{{isAnimating ? '#cccccc' : '#07c160'}}" backgroundColor="#e0e0e0" block-color="{{isAnimating ? '#999999' : '#07c160'}}" disabled="{{isAnimating}}"/>
+    </view>
+    
+    <button class="btn process-btn {{isAnimating ? 'btn-stop' : ''}}" bindtap="processImage">
+      <text class="btn-icon">{{isAnimating ? '■' : '▶'}}</text>
+      <text>{{isAnimating ? '停止动画' : '生成动态效果'}}</text>
+    </button>
+  </view>
+  
+  <view class="footer" wx:if="{{isAnimating}}">
+    <text>提示: 动画效果已激活，您可以保存屏幕录制或截图分享</text>
   </view>
 </view>

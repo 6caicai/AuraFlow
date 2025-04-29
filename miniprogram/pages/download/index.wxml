@@ -1,0 +1,120 @@
+<!--download.wxml-->
+<view class="container">
+  <view class="header">
+    <view class="title">效果预览</view>
+    <view class="subtitle">您可以预览动画效果并下载</view>
+  </view>
+  
+  <view class="canvas-container" wx:if="{{!showResult}}">
+    <canvas 
+      type="2d" 
+      id="previewCanvas" 
+      class="canvas"
+      style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;">
+    </canvas>
+    
+    <!-- Fallback image display if canvas fails -->
+    <view class="fallback-image-container" wx:if="{{canvasError}}">
+      <image 
+        class="fallback-image" 
+        src="{{imagePath}}" 
+        mode="aspectFit"
+        binderror="handleDirectImageError">
+      </image>
+      <view class="error-message">{{canvasErrorMessage}}</view>
+      <view class="fallback-actions">
+        <button class="fallback-btn" bindtap="tryInitCanvasAgain">重试</button>
+        <button class="fallback-btn" bindtap="skipToDirectImageMode">直接使用图片</button>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 直接图片预览模式 -->
+  <view class="direct-image-container" wx:if="{{useDirectImageMode && !showResult}}">
+    <image 
+      class="direct-image" 
+      src="{{imagePath}}" 
+      mode="aspectFit"
+      binderror="handleDirectImageError">
+    </image>
+    <view class="direct-mode-text">直接图片模式(无动画预览)</view>
+  </view>
+  
+  <!-- 结果显示区域 -->
+  <view class="result-container" wx:if="{{showResult}}">
+    <image 
+      class="result-image" 
+      src="{{generatedGifPath}}" 
+      mode="aspectFit"
+      binderror="handleImageError">
+    </image>
+    <view class="result-controls">
+      <button class="action-btn download-btn" bindtap="downloadImage">保存到相册</button>
+      <button class="action-btn reset-btn" bindtap="resetSelection">重新开始</button>
+    </view>
+  </view>
+  
+  <!-- 显示调试信息 -->
+  <view class="debug-info" wx:if="{{showDebugInfo}}">
+    <view class="debug-title" bindtap="toggleDebugInfo">调试信息 (点击隐藏)</view>
+    <view class="debug-content">
+      <view>图片路径: {{imagePath}}</view>
+      <view>Canvas 状态: {{canvasContext ? '已初始化' : '未初始化'}}</view>
+      <view wx:if="{{imageInfo}}">
+        图片尺寸: {{imageInfo.width}} x {{imageInfo.height}}
+      </view>
+      <view wx:if="{{canvasError}}">
+        Canvas 错误: {{canvasErrorMessage}}
+      </view>
+    </view>
+  </view>
+  
+  <view class="options-section" wx:if="{{!showResult && !useDirectImageMode}}">
+    <view class="option-item">
+      <text class="option-label">动画时长(秒)：</text>
+      <slider min="1" max="5" value="{{animationDuration}}" bindchange="onDurationChange" show-value step="0.5"/>
+    </view>
+  </view>
+  
+  <view class="control-section" wx:if="{{!showResult}}">
+    <view class="button-grid">
+      <button 
+        class="action-btn animation-btn" 
+        bindtap="toggleAnimation" 
+        disabled="{{useDirectImageMode}}"
+        wx:if="{{!useDirectImageMode}}">
+        {{isAnimating ? '停止预览' : '播放动画'}}
+      </button>
+      
+      <button class="action-btn download-btn" bindtap="generateAndDownload" disabled="{{isProcessing}}">
+        {{isProcessing ? (isCapturingFrames ? '捕获中...' : '处理中...') : '生成GIF'}}
+      </button>
+      
+      <button class="action-btn save-btn" bindtap="saveToAlbum" disabled="{{!processedImagePath && !imagePath}}">
+        保存到相册
+      </button>
+      
+      <button class="action-btn back-btn" bindtap="backToIndex">
+        返回
+      </button>
+    </view>
+  </view>
+  
+  <view class="processing-indicator" wx:if="{{processing}}">
+    <view class="loading-spinner"></view>
+    <text>正在处理中，请稍候...</text>
+  </view>
+  
+  <view class="tips" wx:if="{{!showResult && !useDirectImageMode}}">
+    <text>提示：先点击"播放动画"预览效果，满意后点击"生成GIF"，生成完成后可保存</text>
+  </view>
+  
+  <view class="tips" wx:if="{{!showResult && useDirectImageMode}}">
+    <text>提示：由于Canvas初始化失败，您处于直接图片模式。您可以直接点击"生成GIF"按钮处理图片。</text>
+  </view>
+  
+  <!-- 调试开关 -->
+  <view class="debug-toggle" bindtap="toggleDebugInfo" wx:if="{{!showDebugInfo}}">
+    点击显示调试信息
+  </view>
+</view> 

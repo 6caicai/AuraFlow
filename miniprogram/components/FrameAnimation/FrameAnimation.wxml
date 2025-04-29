@@ -1,0 +1,27 @@
+<view class="frame-animation" style="width: {{width}}; height: {{height}};">
+  <block wx:if="{{frames.length > 0}}">
+    <view class="image-container {{isPlaying ? 'container-playing' : ''}}">
+      <image 
+        class="frame-image {{isPlaying ? 'playing' : ''}}" 
+        src="{{frames[currentFrameIndex]}}" 
+        mode="aspectFit"
+        bindtap="onImageTap"
+      />
+    </view>
+    
+    <view class="controls">
+      <view class="control-btn {{isPlaying ? 'pause-btn' : 'play-btn'}}" bindtap="togglePlay">
+        {{isPlaying ? '暂停' : '播放'}}
+      </view>
+      <view class="control-btn reset-btn" bindtap="reset">重置</view>
+    </view>
+    
+    <view class="frame-info">
+      <text>帧 {{currentFrameIndex + 1}}/{{frames.length}}</text>
+    </view>
+  </block>
+  
+  <block wx:else>
+    <view class="no-frames">未加载帧图像</view>
+  </block>
+</view> 

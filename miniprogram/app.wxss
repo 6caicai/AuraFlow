@@ -18,10 +18,97 @@ button::after{
   border: none;
 }
 
-
 page {
-  background: #f6f6f6;
+  background: #f8fafe;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+/* Green theme color variables */
+page {
+  --primary-color: #07c160;
+  --primary-color-light: #46c97c;
+  --primary-color-dark: #06ad56;
+  --secondary-color: #e8f8ee;
+  --text-color: #06ae56;
+  --border-color: #91e3b3;
+  
+  /* 新增样式变量 */
+  --card-shadow: 0 2px 12px rgba(7, 193, 96, 0.1);
+  --card-radius: 12rpx;
+  --transition-normal: all 0.3s ease;
+  --page-padding: 24rpx;
+  --spacing-small: 12rpx;
+  --spacing-normal: 24rpx;
+  --spacing-large: 48rpx;
+  --text-color-light: #666;
+  --text-color-lighter: #999;
+  --bg-color: #f8fafe;
+  --bg-card: #ffffff;
+}
+
+/* 全局美化样式 */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--spacing-normal);
+  margin-bottom: var(--spacing-large);
+  overflow: hidden;
+  transition: var(--transition-normal);
+}
+
+.card:active {
+  transform: scale(0.99);
+  box-shadow: 0 1px 6px rgba(7, 193, 96, 0.1);
+}
+
+.btn {
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--card-radius);
+  padding: 16rpx 32rpx;
+  font-size: 28rpx;
+  transition: var(--transition-normal);
+  border: none;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:active {
+  background-color: var(--primary-color-dark);
+  transform: translateY(2rpx);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-outline:active {
+  background-color: rgba(7, 193, 96, 0.05);
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hover-scale {
+  transition: var(--transition-normal);
+}
+
+.hover-scale:active {
+  transform: scale(1.05);
 }

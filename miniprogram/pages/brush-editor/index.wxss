@@ -1,0 +1,105 @@
+/* brush-editor.wxss */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  box-sizing: border-box;
+  height: 100vh;
+  background-color: #f8f8f8;
+}
+
+.header {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.canvas-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20rpx 0;
+  background-color: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+  padding: 20rpx;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.control-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.selection-tip {
+  color: #ff6b81;
+  font-weight: bold;
+  margin: 20rpx 0;
+  font-size: 30rpx;
+}
+
+.button-group {
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+  margin-top: 40rpx;
+}
+
+.action-btn {
+  min-width: 180rpx;
+  font-size: 28rpx;
+  border-radius: 40rpx;
+  padding: 15rpx 0;
+}
+
+.back-btn {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.clear-btn {
+  background-color: #ff9800;
+  color: white;
+}
+
+.next-btn {
+  background-color: #07c160;
+  color: white;
+}
+
+.next-btn[disabled] {
+  background-color: #cccccc;
+  color: #999999;
+}
+
+.animate-btn {
+  background-color: #1aad19;
+  color: white;
+}
+
+.animate-btn[disabled] {
+  background-color: #a5d3a6;
+  color: rgba(255, 255, 255, 0.6);
+} 

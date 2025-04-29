@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="register-box">
+    <view class="title">用户注册</view>
+    <view class="input-group">
+      <input class="input" type="text" placeholder="请输入用户名" bindinput="onUsernameInput" value="{{username}}" />
+      <input class="input" type="text" placeholder="请输入昵称（选填）" bindinput="onNicknameInput" value="{{nickname}}" />
+      <input class="input" type="password" placeholder="请输入密码" bindinput="onPasswordInput" value="{{password}}" />
+      <input class="input" type="password" placeholder="请确认密码" bindinput="onConfirmPasswordInput" value="{{confirmPassword}}" />
+    </view>
+    <button class="register-btn" type="primary" bindtap="onRegister" loading="{{loading}}" disabled="{{loading}}">
+      {{loading ? '注册中...' : '注册'}}
+    </button>
+    <view class="login-link" bindtap="goToLogin">已有账号？立即登录</view>
+  </view>
+</view> 

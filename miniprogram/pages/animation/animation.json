@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "动态图片效果",
+  "usingComponents": {
+    "frame-animation": "/components/FrameAnimation/FrameAnimation"
+  }
+} 
