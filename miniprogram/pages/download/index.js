@@ -27,11 +27,16 @@ Page({
     canvasError: false,
     canvasErrorMessage: '',
     initializingCanvas: false,
-    useDirectImageMode: false // 是否直接使用图片模式（不使用canvas）
+    useDirectImageMode: false, // 是否直接使用图片模式（不使用canvas）
+    isLoggedIn: false, // 添加登录状态标记
+    userInfo: null     // 添加用户信息
   },
 
   onLoad: function(options) {
     console.log('download page onLoad, options:', options);
+    
+    // 检查用户登录状态
+    this.checkLoginStatus();
     
     if (options.imagePath) {
       // 解码URL参数
@@ -69,6 +74,59 @@ Page({
     this.setData({
       canvasWidth: systemInfo.windowWidth * 0.9,
       canvasHeight: systemInfo.windowHeight * 0.5
+    });
+  },
+  
+  // 检查用户登录状态
+  checkLoginStatus: function() {
+    const token = wx.getStorageSync('token');
+    if (token) {
+      // 验证token有效性
+      this.validateToken(token);
+    } else {
+      // 未登录状态下提示用户登录
+      this.showLoginTip();
+    }
+  },
+  
+  // 验证token有效性
+  validateToken: function(token) {
+    wx.cloud.callFunction({
+      name: 'verifyToken',
+      data: { token },
+      success: res => {
+        if (res.result && res.result.success) {
+          this.setData({
+            isLoggedIn: true,
+            userInfo: res.result.userInfo
+          });
+        } else {
+          this.setData({ isLoggedIn: false });
+          this.showLoginTip();
+        }
+      },
+      fail: err => {
+        console.error('验证token失败:', err);
+        this.setData({ isLoggedIn: false });
+        this.showLoginTip();
+      }
+    });
+  },
+  
+  // 显示登录提示
+  showLoginTip: function() {
+    wx.showModal({
+      title: '提示',
+      content: '您尚未登录，部分功能可能受限。是否现在登录？',
+      confirmText: '去登录',
+      cancelText: '暂不登录',
+      success: res => {
+        if (res.confirm) {
+          wx.navigateTo({
+            url: '/pages/login/login'
+          });
+        }
+      }
     });
   },
   
@@ -1144,27 +1202,251 @@ Page({
   
   // 保存到相册
   saveToAlbum: function() {
-    if (!this.data.processedImagePath) {
-      // 如果还没有处理后的图片，先生成
-      this.generateAndDownload();
+    // 检查用户是否登录
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '需要登录',
+        content: '保存作品需要登录，是否现在登录？',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: res => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
       return;
     }
     
-    wx.saveImageToPhotosAlbum({
-      filePath: this.data.processedImagePath,
-      success: function() {
-        wx.showToast({
-          title: '保存成功',
-          icon: 'success'
+    // 如果有处理后的图片，优先使用
+    if (this.data.processedImagePath) {
+      // 先保存到云端
+      this.saveToCloud(this.data.processedImagePath).then(() => {
+        // 再保存到本地相册
+        wx.saveImageToPhotosAlbum({
+          filePath: this.data.processedImagePath,
+          success: function() {
+            wx.showToast({
+              title: '保存成功',
+              icon: 'success'
+            });
+          },
+          fail: function(err) {
+            console.error('保存失败:', err);
+            wx.showToast({
+              title: '保存失败',
+              icon: 'none'
+            });
+          }
         });
-      },
-      fail: function(err) {
-        console.error('保存失败:', err);
+      }).catch(err => {
+        console.error('云端保存失败:', err);
         wx.showToast({
-          title: '保存失败',
+          title: '保存到云端失败',
           icon: 'none'
         });
+      });
+      return;
+    }
+    
+    // 如果是直接图片模式，使用wx.downloadFile下载原图
+    if (this.data.useDirectImageMode && this.data.imagePath) {
+      // 判断是否是网络图片
+      if (this.data.imagePath.startsWith('http')) {
+        wx.showLoading({
+          title: '下载图片中...',
+          mask: true
+        });
+        
+        wx.downloadFile({
+          url: this.data.imagePath,
+          success: res => {
+            if (res.statusCode === 200) {
+              // 先保存到云端
+              this.saveToCloud(res.tempFilePath).then(() => {
+                // 再保存到本地相册
+                wx.saveImageToPhotosAlbum({
+                  filePath: res.tempFilePath,
+                  success: () => {
+                    wx.hideLoading();
+                    wx.showToast({
+                      title: '保存成功',
+                      icon: 'success'
+                    });
+                  },
+                  fail: err => {
+                    wx.hideLoading();
+                    console.error('保存到相册失败:', err);
+                    wx.showToast({
+                      title: '保存失败',
+                      icon: 'none'
+                    });
+                  }
+                });
+              }).catch(err => {
+                wx.hideLoading();
+                console.error('云端保存失败:', err);
+                wx.showToast({
+                  title: '保存到云端失败',
+                  icon: 'none'
+                });
+              });
+            } else {
+              wx.hideLoading();
+              wx.showToast({
+                title: '下载失败',
+                icon: 'none'
+              });
+            }
+          },
+          fail: err => {
+            wx.hideLoading();
+            console.error('下载图片失败:', err);
+            wx.showToast({
+              title: '下载失败',
+              icon: 'none'
+            });
+          }
+        });
+      } else {
+        // 本地图片路径，直接保存
+        // 先保存到云端
+        this.saveToCloud(this.data.imagePath).then(() => {
+          // 再保存到本地相册
+          wx.saveImageToPhotosAlbum({
+            filePath: this.data.imagePath,
+            success: () => {
+              wx.showToast({
+                title: '保存成功',
+                icon: 'success'
+              });
+            },
+            fail: err => {
+              console.error('保存到相册失败:', err);
+              wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+              });
+            }
+          });
+        }).catch(err => {
+          console.error('云端保存失败:', err);
+          wx.showToast({
+            title: '保存到云端失败',
+            icon: 'none'
+          });
+        });
       }
+    } else {
+      // 如果还没有处理后的图片，先生成
+      this.generateAndDownload();
+    }
+  },
+  
+  // 保存作品到云端
+  saveToCloud: function(filePath) {
+    return new Promise((resolve, reject) => {
+      wx.showLoading({
+        title: '正在保存到云端...',
+        mask: true
+      });
+      
+      // 生成唯一文件名
+      const timestamp = new Date().getTime();
+      const randomStr = Math.random().toString(36).substr(2, 6);
+      const cloudPath = `artwork/${this.data.userInfo?.username || 'anonymous'}/${timestamp}_${randomStr}.png`;
+      
+      // 上传到云存储
+      wx.cloud.uploadFile({
+        cloudPath: cloudPath,
+        filePath: filePath,
+        success: res => {
+          const fileID = res.fileID;
+          console.log('上传成功，文件ID:', fileID);
+          
+          // 调用云函数保存文件记录到数据库
+          wx.cloud.callFunction({
+            name: 'saveArtwork',
+            data: {
+              fileID: fileID,
+              type: 'image',
+              createTime: new Date(),
+              distortionStrength: this.data.distortionStrength,
+              animationSpeed: this.data.animationSpeed
+            },
+            success: res => {
+              wx.hideLoading();
+              console.log('作品保存成功:', res);
+              resolve(fileID);
+            },
+            fail: err => {
+              wx.hideLoading();
+              console.error('保存作品记录失败:', err);
+              reject(err);
+            }
+          });
+        },
+        fail: err => {
+          wx.hideLoading();
+          console.error('上传到云存储失败:', err);
+          reject(err);
+        }
+      });
+    });
+  },
+  
+  // 保存动画到云端
+  saveAnimationToCloud: function(gifPath) {
+    return new Promise((resolve, reject) => {
+      wx.showLoading({
+        title: '正在保存动画到云端...',
+        mask: true
+      });
+      
+      // 生成唯一文件名
+      const timestamp = new Date().getTime();
+      const randomStr = Math.random().toString(36).substr(2, 6);
+      const cloudPath = `animation/${this.data.userInfo?.username || 'anonymous'}/${timestamp}_${randomStr}.gif`;
+      
+      // 上传到云存储
+      wx.cloud.uploadFile({
+        cloudPath: cloudPath,
+        filePath: gifPath,
+        success: res => {
+          const fileID = res.fileID;
+          console.log('上传成功，文件ID:', fileID);
+          
+          // 调用云函数保存文件记录到数据库
+          wx.cloud.callFunction({
+            name: 'saveArtwork',
+            data: {
+              fileID: fileID,
+              type: 'animation',
+              createTime: new Date(),
+              distortionStrength: this.data.distortionStrength,
+              animationSpeed: this.data.animationSpeed,
+              frameCount: this.data.frameCount
+            },
+            success: res => {
+              wx.hideLoading();
+              console.log('动画保存成功:', res);
+              resolve(fileID);
+            },
+            fail: err => {
+              wx.hideLoading();
+              console.error('保存动画记录失败:', err);
+              reject(err);
+            }
+          });
+        },
+        fail: err => {
+          wx.hideLoading();
+          console.error('上传到云存储失败:', err);
+          reject(err);
+        }
+      });
     });
   },
   
@@ -1312,102 +1594,6 @@ Page({
           }
         }
       });
-    }
-  },
-  
-  // 在直接图片模式下保存图片到相册
-  saveToAlbum: function() {
-    // 如果有处理后的图片，优先使用
-    if (this.data.processedImagePath) {
-      wx.saveImageToPhotosAlbum({
-        filePath: this.data.processedImagePath,
-        success: function() {
-          wx.showToast({
-            title: '保存成功',
-            icon: 'success'
-          });
-        },
-        fail: function(err) {
-          console.error('保存失败:', err);
-          wx.showToast({
-            title: '保存失败',
-            icon: 'none'
-          });
-        }
-      });
-      return;
-    }
-    
-    // 如果是直接图片模式，使用wx.downloadFile下载原图
-    if (this.data.useDirectImageMode && this.data.imagePath) {
-      // 判断是否是网络图片
-      if (this.data.imagePath.startsWith('http')) {
-        wx.showLoading({
-          title: '下载图片中...',
-          mask: true
-        });
-        
-        wx.downloadFile({
-          url: this.data.imagePath,
-          success: res => {
-            if (res.statusCode === 200) {
-              wx.saveImageToPhotosAlbum({
-                filePath: res.tempFilePath,
-                success: () => {
-                  wx.hideLoading();
-                  wx.showToast({
-                    title: '保存成功',
-                    icon: 'success'
-                  });
-                },
-                fail: err => {
-                  wx.hideLoading();
-                  console.error('保存到相册失败:', err);
-                  wx.showToast({
-                    title: '保存失败',
-                    icon: 'none'
-                  });
-                }
-              });
-            } else {
-              wx.hideLoading();
-              wx.showToast({
-                title: '下载失败',
-                icon: 'none'
-              });
-            }
-          },
-          fail: err => {
-            wx.hideLoading();
-            console.error('下载图片失败:', err);
-            wx.showToast({
-              title: '下载失败',
-              icon: 'none'
-            });
-          }
-        });
-      } else {
-        // 本地图片路径，直接保存
-        wx.saveImageToPhotosAlbum({
-          filePath: this.data.imagePath,
-          success: () => {
-            wx.showToast({
-              title: '保存成功',
-              icon: 'success'
-            });
-          },
-          fail: err => {
-            console.error('保存到相册失败:', err);
-            wx.showToast({
-              title: '保存失败',
-              icon: 'none'
-            });
-          }
-        });
-      }
-    } else {
-      // 如果还没有处理后的图片，先生成
-      this.generateAndDownload();
     }
   },
 }); 

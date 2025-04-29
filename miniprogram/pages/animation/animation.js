@@ -4,10 +4,16 @@ Page({
     isLoading: true,
     frameInterval: 200,
     imageTempFiles: [], // 临时文件路径，用于清理
-    errorMessage: ''
+    errorMessage: '',
+    isLoggedIn: false,   // 用户登录状态
+    userInfo: null,      // 用户信息
+    isSaved: false       // 是否已保存到云端
   },
 
   onLoad: function(options) {
+    // 检查用户登录状态
+    this.checkLoginStatus();
+    
     // 如果有传入帧数据，进行处理
     if (options.frameData) {
       try {
@@ -28,6 +34,39 @@ Page({
         isLoading: false
       });
     }
+  },
+  
+  // 检查用户登录状态
+  checkLoginStatus: function() {
+    const token = wx.getStorageSync('token');
+    const userInfo = wx.getStorageSync('userInfo');
+    
+    if (token) {
+      // 验证token有效性
+      this.validateToken(token, userInfo);
+    }
+  },
+  
+  // 验证token有效性
+  validateToken: function(token, userInfo) {
+    wx.cloud.callFunction({
+      name: 'verifyToken',
+      data: { token },
+      success: res => {
+        if (res.result && res.result.success) {
+          this.setData({
+            isLoggedIn: true,
+            userInfo: userInfo || res.result.userInfo
+          });
+        } else {
+          this.setData({ isLoggedIn: false, userInfo: null });
+        }
+      },
+      fail: err => {
+        console.error('验证token失败:', err);
+        this.setData({ isLoggedIn: false, userInfo: null });
+      }
+    });
   },
 
   processFrames: function(frameData) {
@@ -84,6 +123,88 @@ Page({
       },
       fail: (err) => {
         console.error('选择图片失败:', err);
+      }
+    });
+  },
+  
+  // 保存动画到云端
+  saveToCloud: function() {
+    // 检查用户是否登录
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '需要登录',
+        content: '保存作品需要登录，是否现在登录？',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: res => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
+      });
+      return;
+    }
+    
+    // 检查是否已经保存过
+    if (this.data.isSaved) {
+      wx.showToast({
+        title: '已保存到云端',
+        icon: 'success'
+      });
+      return;
+    }
+    
+    // 检查是否有帧数据
+    if (!this.data.frames || this.data.frames.length === 0) {
+      wx.showToast({
+        title: '没有可保存的动画',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.showLoading({
+      title: '正在保存...',
+      mask: true
+    });
+    
+    // 将帧数据信息保存到云端
+    const animationData = {
+      frames: this.data.frames,
+      frameCount: this.data.frames.length,
+      frameInterval: this.data.frameInterval,
+      createTime: new Date()
+    };
+    
+    wx.cloud.callFunction({
+      name: 'saveAnimation',
+      data: animationData,
+      success: res => {
+        wx.hideLoading();
+        if (res.result && res.result.success) {
+          this.setData({
+            isSaved: true
+          });
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          });
+        } else {
+          wx.showToast({
+            title: res.result?.message || '保存失败',
+            icon: 'none'
+          });
+        }
+      },
+      fail: err => {
+        wx.hideLoading();
+        console.error('保存动画失败:', err);
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        });
       }
     });
   },

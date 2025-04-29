@@ -94,44 +94,66 @@ Page({
     this.setData({ loading: true });
     
     try {
-      // TODO: 替换为实际的登录API调用
-      // const res = await wx.cloud.callFunction({
-      //   name: 'login',
-      //   data: { username, password }
-      // });
+      // 使用云函数进行登录认证
+      const res = await wx.cloud.callFunction({
+        name: 'login',
+        data: { username, password }
+      });
       
-      // 模拟登录请求
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('登录结果:', res);
       
-      // 保存登录状态
-      const token = 'dummy_token'; // 应该是从后端获取的token
-      wx.setStorageSync('token', token);
-      
-      // 如果选择记住密码，保存用户名和密码
-      if (rememberPassword) {
-        wx.setStorageSync('savedUsername', username);
-        wx.setStorageSync('savedPassword', password);
+      if (res.result && res.result.success) {
+        // 保存登录状态
+        const token = res.result.token;
+        const userInfo = res.result.userInfo;
+        
+        wx.setStorageSync('token', token);
+        wx.setStorageSync('userInfo', userInfo);
+        
+        // 如果选择记住密码，保存用户名和密码
+        if (rememberPassword) {
+          wx.setStorageSync('savedUsername', username);
+          wx.setStorageSync('savedPassword', password);
+        } else {
+          wx.removeStorageSync('savedUsername');
+          wx.removeStorageSync('savedPassword');
+        }
+
+        this.setData({ 
+          isLoggedIn: true,
+          loading: false
+        });
+
+        wx.showToast({
+          title: '登录成功',
+          icon: 'success',
+          success: () => {
+            // 延迟跳转，让用户看到成功提示
+            setTimeout(() => {
+              // 返回上一页或跳转到首页
+              if (getCurrentPages().length > 1) {
+                wx.navigateBack();
+              } else {
+                wx.switchTab({
+                  url: '/pages/index/index'
+                });
+              }
+            }, 1500);
+          }
+        });
       } else {
-        wx.removeStorageSync('savedUsername');
-        wx.removeStorageSync('savedPassword');
+        wx.showToast({
+          title: res.result?.message || '登录失败，用户名或密码错误',
+          icon: 'none'
+        });
+        this.setData({ loading: false });
       }
-
-      this.setData({ 
-        isLoggedIn: true,
-        loading: false
-      });
-
-      wx.showToast({
-        title: '登录成功',
-        icon: 'success'
-      });
     } catch (error) {
       console.error('登录失败:', error);
       wx.showToast({
         title: '登录失败，请重试',
         icon: 'none'
       });
-    } finally {
       this.setData({ loading: false });
     }
   },

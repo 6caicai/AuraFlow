@@ -10,7 +10,9 @@ Page({
     isDrawing: false,
     brushPoints: [],
     brushPath: null,
-    selectedArea: null
+    selectedArea: null,
+    isLoggedIn: false,
+    userInfo: null
   },
 
   onLoad: function(options) {
@@ -28,6 +30,9 @@ Page({
       canvasWidth: systemInfo.windowWidth * 0.9,
       canvasHeight: systemInfo.windowHeight * 0.5
     });
+    
+    // 检查用户登录状态
+    this.checkLoginStatus();
   },
 
   onReady: function() {
@@ -414,12 +419,83 @@ Page({
     ctx.restore();
   },
 
+  // 检查用户登录状态
+  checkLoginStatus: function() {
+    const token = wx.getStorageSync('token');
+    if (token) {
+      // 验证token有效性
+      this.validateToken(token);
+    } else {
+      // 未登录状态下提示用户登录
+      this.showLoginTip();
+    }
+  },
+  
+  // 验证token有效性
+  validateToken: function(token) {
+    wx.cloud.callFunction({
+      name: 'verifyToken',
+      data: { token },
+      success: res => {
+        if (res.result && res.result.success) {
+          this.setData({
+            isLoggedIn: true,
+            userInfo: res.result.userInfo
+          });
+        } else {
+          this.setData({ isLoggedIn: false });
+          this.showLoginTip();
+        }
+      },
+      fail: err => {
+        console.error('验证token失败:', err);
+        this.setData({ isLoggedIn: false });
+        this.showLoginTip();
+      }
+    });
+  },
+  
+  // 显示登录提示
+  showLoginTip: function() {
+    wx.showModal({
+      title: '提示',
+      content: '您尚未登录，部分功能可能受限。是否现在登录？',
+      confirmText: '去登录',
+      cancelText: '暂不登录',
+      success: res => {
+        if (res.confirm) {
+          wx.navigateTo({
+            url: '/pages/login/login'
+          });
+        }
+      }
+    });
+  },
+
   // 完成编辑，进入下载页面
   finishEditing: function() {
     if (!this.data.selectedArea) {
       wx.showToast({
         title: '请先画出选择区域',
         icon: 'none'
+      });
+      return;
+    }
+    
+    // 检查用户是否登录
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '需要登录',
+        content: '保存作品需要登录，是否现在登录？',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: res => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
       });
       return;
     }
@@ -459,6 +535,24 @@ Page({
         title: '请先画出选择区域',
         icon: 'none',
         duration: 2000
+      });
+      return;
+    }
+    
+    // 检查用户是否登录
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '需要登录',
+        content: '生成动画需要登录，是否现在登录？',
+        confirmText: '去登录',
+        cancelText: '取消',
+        success: res => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/login/login'
+            });
+          }
+        }
       });
       return;
     }
