@@ -1,15 +1,43 @@
-<view class="container">
-  <video 
-    src="{{videoUrl}}" 
-    controls 
-    class="video-player"
-    bindplay="onPlay"
-    bindpause="onPause"
-    bindended="onEnded">
-  </video>
+<view class="container fade-in">
+  <view class="card video-card scale-in">
+    <view class="card-title">视频预览</view>
+    
+    <view class="video-container">
+      <video 
+        src="{{videoUrl}}" 
+        controls 
+        class="video-player"
+        bindplay="onPlay"
+        bindpause="onPause"
+        bindended="onEnded">
+      </video>
+      
+      <view class="video-info" wx:if="{{videoInfo}}">
+        <view class="info-item">
+          <text class="info-label">时长：</text>
+          <text class="info-value">{{videoInfo.duration || '-'}}秒</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">大小：</text>
+          <text class="info-value">{{videoInfo.size || '-'}}MB</text>
+        </view>
+      </view>
+    </view>
+  </view>
   
   <view class="action-buttons">
-    <button class="save-btn" bindtap="saveVideo">保存视频</button>
-    <button class="share-btn" open-type="share">分享给好友</button>
+    <button class="btn save-btn" bindtap="saveVideo">
+      <text class="btn-icon">💾</text>
+      <text>保存视频</text>
+    </button>
+    <button class="btn share-btn" open-type="share">
+      <text class="btn-icon">📤</text>
+      <text>分享给好友</text>
+    </button>
+  </view>
+  
+  <view class="tip-box">
+    <text class="tip-icon">💡</text>
+    <text class="tip-text">提示：保存后的视频将保存到您的相册</text>
   </view>
 </view> 

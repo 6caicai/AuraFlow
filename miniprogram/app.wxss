@@ -27,27 +27,47 @@ page {
   color: #333;
 }
 
-/* Green theme color variables */
+/* 更新的主题色变量 */
 page {
+  /* 主色调 */
   --primary-color: #07c160;
   --primary-color-light: #46c97c;
   --primary-color-dark: #06ad56;
-  --secondary-color: #e8f8ee;
-  --text-color: #06ae56;
-  --border-color: #91e3b3;
+  --primary-gradient: linear-gradient(135deg, #07c160, #46c97c);
   
-  /* 新增样式变量 */
-  --card-shadow: 0 2px 12px rgba(7, 193, 96, 0.1);
-  --card-radius: 12rpx;
-  --transition-normal: all 0.3s ease;
-  --page-padding: 24rpx;
-  --spacing-small: 12rpx;
-  --spacing-normal: 24rpx;
-  --spacing-large: 48rpx;
-  --text-color-light: #666;
-  --text-color-lighter: #999;
+  /* 辅助色 */
+  --secondary-color: #e8f8ee;
+  --accent-color: #3498db;
+  --error-color: #ff4d4f;
+  
+  /* 文本颜色 */
+  --text-color: #333333;
+  --text-color-light: #666666;
+  --text-color-lighter: #999999;
+  --text-color-primary: #06ae56;
+  
+  /* 背景色 */
   --bg-color: #f8fafe;
   --bg-card: #ffffff;
+  --bg-secondary: #f5f5f5;
+  
+  /* 边框和阴影 */
+  --border-color: #91e3b3;
+  --card-shadow: 0 8px 24px rgba(7, 193, 96, 0.12);
+  --card-shadow-hover: 0 12px 32px rgba(7, 193, 96, 0.18);
+  --card-radius: 16rpx;
+  
+  /* 动画和过渡 */
+  --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 间距 */
+  --page-padding: 30rpx;
+  --spacing-xs: 8rpx;
+  --spacing-sm: 16rpx;
+  --spacing-md: 24rpx;
+  --spacing-lg: 32rpx;
+  --spacing-xl: 48rpx;
 }
 
 /* 全局美化样式 */
@@ -55,21 +75,44 @@ page {
   background: var(--bg-card);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
-  padding: var(--spacing-normal);
-  margin-bottom: var(--spacing-large);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
   overflow: hidden;
   transition: var(--transition-normal);
+  width: 92%;
+  position: relative;
 }
 
 .card:active {
   transform: scale(0.99);
-  box-shadow: 0 1px 6px rgba(7, 193, 96, 0.1);
+  box-shadow: 0 4px 12px rgba(7, 193, 96, 0.1);
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+}
+
+.card-title::before {
+  content: "";
+  display: inline-block;
+  width: 8rpx;
+  height: 32rpx;
+  background: var(--primary-gradient);
+  margin-right: var(--spacing-sm);
+  border-radius: 4rpx;
 }
 
 .btn {
-  background: var(--primary-color);
+  background: var(--primary-gradient);
   color: white;
-  border-radius: var(--card-radius);
+  border-radius: calc(var(--card-radius) / 2);
   padding: 16rpx 32rpx;
   font-size: 28rpx;
   transition: var(--transition-normal);
@@ -79,25 +122,37 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(7, 193, 96, 0.2);
 }
 
 .btn:active {
-  background-color: var(--primary-color-dark);
+  box-shadow: 0 2px 8px rgba(7, 193, 96, 0.15);
   transform: translateY(2rpx);
+  opacity: 0.9;
 }
 
 .btn-outline {
   background: transparent;
   color: var(--primary-color);
   border: 1px solid var(--primary-color);
+  box-shadow: none;
 }
 
 .btn-outline:active {
   background-color: rgba(7, 193, 96, 0.05);
 }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--spacing-xs);
+}
+
+/* 动画效果 */
 .fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
@@ -105,10 +160,93 @@ page {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .hover-scale {
   transition: var(--transition-normal);
 }
 
 .hover-scale:active {
-  transform: scale(1.05);
+  transform: scale(1.02);
+}
+
+/* 通用标题样式 */
+.title-lg {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-md);
+}
+
+.title-md {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-sm);
+}
+
+.title-sm {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* 表单元素样式 */
+.input-control {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 var(--spacing-md);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--card-radius);
+  transition: var(--transition-fast);
+  margin-bottom: var(--spacing-md);
+  background-color: var(--bg-secondary);
+}
+
+.input-control:focus {
+  border-color: var(--primary-color-light);
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.1);
+}
+
+/* 标签样式 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  font-size: 24rpx;
+  margin-right: var(--spacing-xs);
+}
+
+.tag-primary {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.tag-accent {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--accent-color);
+}
+
+/* 加载指示器 */
+.loading {
+  display: inline-block;
+  width: 30rpx;
+  height: 30rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

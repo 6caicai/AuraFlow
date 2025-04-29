@@ -1,35 +1,45 @@
 <!--index.wxml-->
 <view class="container fade-in">
+  <!-- 步骤指示器 -->
   <view class="process-steps">
     <view class="step {{tempImagePath ? 'step-done' : 'step-current'}}">
       <view class="step-icon">1</view>
       <view class="step-text">选择图片</view>
     </view>
-    <view class="step-line"></view>
+    <view class="step-line {{tempImagePath ? 'step-line-active' : ''}}"></view>
     <view class="step {{selectedArea ? 'step-done' : (tempImagePath ? 'step-current' : '')}}">
       <view class="step-icon">2</view>
       <view class="step-text">画出区域</view>
     </view>
-    <view class="step-line"></view>
+    <view class="step-line {{selectedArea ? 'step-line-active' : ''}}"></view>
     <view class="step {{isAnimating ? 'step-done' : (selectedArea ? 'step-current' : '')}}">
       <view class="step-icon">3</view>
       <view class="step-text">生成效果</view>
     </view>
   </view>
 
-  <view class="card upload-section">
+  <!-- 上传图片卡片 -->
+  <view class="card upload-section scale-in">
     <view class="card-title">上传图片</view>
-    <button class="btn upload-btn" bindtap="chooseImage">
-      <text class="btn-icon">+</text>
-      <text>{{tempImagePath ? '更换图片' : '选择图片'}}</text>
-    </button>
+    <view class="upload-container">
+      <button class="btn upload-btn" bindtap="chooseImage">
+        <text class="btn-icon">{{tempImagePath ? '📷' : '+'}}</text>
+        <text>{{tempImagePath ? '更换图片' : '选择图片'}}</text>
+      </button>
+    </view>
+    
     <view class="preview-container" wx:if="{{tempImagePath}}">
       <image src="{{tempImagePath}}" mode="aspectFit" class="preview-image hover-scale"></image>
+      <view class="image-overlay">
+        <view class="tag tag-primary">已选择图片</view>
+      </view>
     </view>
   </view>
   
-  <view class="card canvas-section" wx:if="{{tempImagePath}}">
+  <!-- 编辑区域卡片 -->
+  <view class="card canvas-section scale-in" wx:if="{{tempImagePath}}">
     <view class="card-title">编辑区域</view>
+    
     <view class="canvas-container">
       <canvas 
         type="2d" 
@@ -44,13 +54,18 @@
     
     <view class="button-group">
       <button class="btn {{isSelecting ? 'btn-active' : ''}}" bindtap="startSelection">
-        {{isSelecting ? '完成选择' : '画出区域'}}
+        <text class="btn-icon">{{isSelecting ? '✓' : '✏️'}}</text>
+        <text>{{isSelecting ? '完成选择' : '画出区域'}}</text>
       </button>
-      <button class="btn btn-outline" bindtap="clearSelection" wx:if="{{selectedArea}}">清除选择</button>
+      <button class="btn btn-outline" bindtap="clearSelection" wx:if="{{selectedArea}}">
+        <text class="btn-icon">🗑️</text>
+        <text>清除选择</text>
+      </button>
     </view>
   </view>
   
-  <view class="card control-section" wx:if="{{tempImagePath && selectedArea}}">
+  <!-- 效果设置卡片 -->
+  <view class="card control-section scale-in" wx:if="{{tempImagePath && selectedArea}}">
     <view class="card-title">效果设置</view>
     
     <view class="slider-group">
@@ -58,13 +73,33 @@
         <text>扭曲强度</text>
         <text class="slider-value">{{distortionStrength}}</text>
       </view>
-      <slider min="1" max="10" value="{{distortionStrength}}" bindchange="onStrengthChange" activeColor="{{isAnimating ? '#cccccc' : '#07c160'}}" backgroundColor="#e0e0e0" block-color="{{isAnimating ? '#999999' : '#07c160'}}" disabled="{{isAnimating}}"/>
+      <slider 
+        min="1" 
+        max="10" 
+        value="{{distortionStrength}}" 
+        bindchange="onStrengthChange" 
+        activeColor="{{isAnimating ? '#cccccc' : 'var(--primary-color)'}}" 
+        backgroundColor="#e0e0e0" 
+        block-color="{{isAnimating ? '#999999' : 'var(--primary-color)'}}" 
+        block-size="24"
+        disabled="{{isAnimating}}"
+      />
       
       <view class="slider-label">
         <text>动画速度</text>
         <text class="slider-value">{{animationSpeed}}</text>
       </view>
-      <slider min="1" max="30" value="{{animationSpeed}}" bindchange="onSpeedChange" activeColor="{{isAnimating ? '#cccccc' : '#07c160'}}" backgroundColor="#e0e0e0" block-color="{{isAnimating ? '#999999' : '#07c160'}}" disabled="{{isAnimating}}"/>
+      <slider 
+        min="1" 
+        max="30" 
+        value="{{animationSpeed}}" 
+        bindchange="onSpeedChange" 
+        activeColor="{{isAnimating ? '#cccccc' : 'var(--primary-color)'}}"
+        backgroundColor="#e0e0e0" 
+        block-color="{{isAnimating ? '#999999' : 'var(--primary-color)'}}" 
+        block-size="24"
+        disabled="{{isAnimating}}"
+      />
     </view>
     
     <button class="btn process-btn {{isAnimating ? 'btn-stop' : ''}}" bindtap="processImage">
@@ -73,7 +108,9 @@
     </button>
   </view>
   
-  <view class="footer" wx:if="{{isAnimating}}">
-    <text>提示: 动画效果已激活，您可以保存屏幕录制或截图分享</text>
+  <!-- 提示信息 -->
+  <view class="footer scale-in" wx:if="{{isAnimating}}">
+    <text class="tip-icon">💡</text>
+    <text>动画效果已激活，您可以保存屏幕录制或截图分享</text>
   </view>
 </view>

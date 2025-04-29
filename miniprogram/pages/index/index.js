@@ -151,22 +151,33 @@ Page({
             // 创建图片对象
             const img = this.canvas.createImage();
             img.onload = () => {
-              // 计算图片绘制尺寸，保持宽高比
-              const scale = Math.min(
-                this.data.canvasWidth / res.width,
-                this.data.canvasHeight / res.height
-              );
-              const width = res.width * scale;
-              const height = res.height * scale;
-              const x = (this.data.canvasWidth - width) / 2;
-              const y = (this.data.canvasHeight - height) / 2;
+              // 计算图片绘制尺寸，固定使用宽度为基准的比例，确保一致性
+              const canvasRatio = this.data.canvasWidth / this.data.canvasHeight;
+              const imageRatio = res.width / res.height;
+              
+              let width, height, x, y;
+              
+              // 使用统一的规则计算图片显示尺寸
+              if (imageRatio > canvasRatio) {
+                // 图片更宽，以宽度为基准
+                width = this.data.canvasWidth * 0.9; // 留出一些边距
+                height = width / imageRatio;
+                x = (this.data.canvasWidth - width) / 2;
+                y = (this.data.canvasHeight - height) / 2;
+              } else {
+                // 图片更高，以高度为基准
+                height = this.data.canvasHeight * 0.9; // 留出一些边距
+                width = height * imageRatio;
+                x = (this.data.canvasWidth - width) / 2;
+                y = (this.data.canvasHeight - height) / 2;
+              }
               
               // 保存图片信息
               this.imageInfo = {
                 x, y, width, height,
                 originalWidth: res.width,
                 originalHeight: res.height,
-                scale: scale
+                scale: width / res.width // 保存实际缩放比例
               };
               
               // 缓存图像对象以供后续使用
@@ -274,7 +285,7 @@ Page({
         // 回退到原始方法
         this.drawImageToCanvas(this.data.tempImagePath).then(() => {
           // 如果有选中区域，绘制选中区域
-          if (this.data.selectedArea && this.brushPath) {
+          if (this.data.selectedArea && this.data.brushPath) {
             this.drawBrushSelection();
           }
           resolve();
@@ -288,27 +299,30 @@ Page({
     
     const { x, y, width, height } = this.imageInfo;
     
-    // 绘制图片
+    // 清除画布
+    ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+    
+    // 绘制图片，确保使用保存的精确尺寸
     ctx.drawImage(this._imgObj, x, y, width, height);
     
     // 如果有选中区域，绘制选中区域
-    if (this.data.selectedArea && this.brushPath) {
+    if (this.data.selectedArea && this.data.brushPath) {
       this.drawBrushSelection();
     }
   },
 
   drawBrushSelection: function() {
-    if (!this.data.canvasContext || !this.brushPath || this.brushPath.length < 3) return;
+    if (!this.data.canvasContext || !this.data.brushPath || this.data.brushPath.length < 3) return;
     
     const ctx = this.data.canvasContext;
     ctx.save();
     
     // 绘制路径
     ctx.beginPath();
-    ctx.moveTo(this.brushPath[0].x, this.brushPath[0].y);
+    ctx.moveTo(this.data.brushPath[0].x, this.data.brushPath[0].y);
     
-    for (let i = 1; i < this.brushPath.length; i++) {
-      ctx.lineTo(this.brushPath[i].x, this.brushPath[i].y);
+    for (let i = 1; i < this.data.brushPath.length; i++) {
+      ctx.lineTo(this.data.brushPath[i].x, this.data.brushPath[i].y);
     }
     
     // 闭合路径
@@ -318,8 +332,13 @@ Page({
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     
-    // 添加半透明填充效果，但不显示边框
-    ctx.fillStyle = 'rgba(0, 150, 255, 0.08)';
+    // 添加明显的边框和半透明填充
+    ctx.strokeStyle = 'rgba(0, 150, 255, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // 添加半透明填充效果
+    ctx.fillStyle = 'rgba(0, 150, 255, 0.12)';
     ctx.fill();
     
     ctx.restore();
@@ -357,35 +376,43 @@ Page({
     const x = touch.x;
     const y = touch.y;
     
-    // 开始一个新的画笔路径
-    const ctx = this.data.canvasContext;
-    if (!ctx) return;
-    
-    this.setData({
-      isDrawing: true,
-      brushPoints: [{x, y}],
-      selectedArea: null,
-      brushPath: null
-    });
-    
-    // 起始点直接绘制，不重新加载图片
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
-    ctx.strokeStyle = 'rgba(0, 150, 255, 0.8)';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2); // 起点圆点
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    
-    // 保存当前路径的起始位置
-    this.lastX = x;
-    this.lastY = y;
+    // 检查点击位置是否在图像范围内
+    if (this.imageInfo) {
+      const { x: imgX, y: imgY, width: imgWidth, height: imgHeight } = this.imageInfo;
+      
+      // 只有当点击在图像区域内时才开始绘制
+      if (x >= imgX && x <= imgX + imgWidth && y >= imgY && y <= imgY + imgHeight) {
+        // 开始一个新的画笔路径
+        const ctx = this.data.canvasContext;
+        if (!ctx) return;
+        
+        this.setData({
+          isDrawing: true,
+          brushPoints: [{x, y}],
+          selectedArea: null,
+          brushPath: null
+        });
+        
+        // 起始点直接绘制，不重新加载图片
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
+        ctx.strokeStyle = 'rgba(0, 150, 255, 0.8)';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2); // 起点圆点
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        
+        // 保存当前路径的起始位置
+        this.lastX = x;
+        this.lastY = y;
+      }
+    }
   },
 
   onCanvasTouchMove: function(e) {
@@ -492,7 +519,8 @@ Page({
       this.setData({
         selectedArea: bounds, // 存储包围盒
         isDrawing: false,
-        isSelecting: false // 自动退出绘制模式
+        isSelecting: false, // 自动退出绘制模式
+        brushPath: brushPoints // 确保将路径保存到数据状态中
       });
       
       // 重新绘制整个画布，确保正确的图层顺序
@@ -530,7 +558,7 @@ Page({
 
   drawSelectionBox: function(area) {
     if (!this.data.canvasContext) return;
-    if (area.isBrushSelection && this.brushPath) {
+    if (area.isBrushSelection && this.data.brushPath) {
       this.drawBrushSelection();
       return;
     }
@@ -674,7 +702,7 @@ Page({
       );
       
       // 如果有选中区域和画笔路径，应用特效
-      if (this.data.selectedArea && this.brushPath && this.brushPath.length >= 3) {
+      if (this.data.selectedArea && this.data.brushPath && this.data.brushPath.length >= 3) {
         // 计算原始图片上对应的区域
         const sourceX = (area.x - x) / width * this._imgObj.width;
         const sourceY = (area.y - y) / height * this._imgObj.height;
@@ -691,9 +719,9 @@ Page({
         // 第0步：优先绘制柔和的全局效果增强选区辨识度
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(this.brushPath[0].x, this.brushPath[0].y);
-        for (let i = 1; i < this.brushPath.length; i++) {
-          ctx.lineTo(this.brushPath[i].x, this.brushPath[i].y);
+        ctx.moveTo(this.data.brushPath[0].x, this.data.brushPath[0].y);
+        for (let i = 1; i < this.data.brushPath.length; i++) {
+          ctx.lineTo(this.data.brushPath[i].x, this.data.brushPath[i].y);
         }
         ctx.closePath();
         
@@ -727,14 +755,14 @@ Page({
         
         // 主要选区 - 内部区域
         ctx.beginPath();
-        ctx.moveTo(this.brushPath[0].x, this.brushPath[0].y);
-        for (let i = 1; i < this.brushPath.length; i++) {
-          ctx.lineTo(this.brushPath[i].x, this.brushPath[i].y);
+        ctx.moveTo(this.data.brushPath[0].x, this.data.brushPath[0].y);
+        for (let i = 1; i < this.data.brushPath.length; i++) {
+          ctx.lineTo(this.data.brushPath[i].x, this.data.brushPath[i].y);
         }
         ctx.closePath();
         
         // 保存原始路径副本用于后续羽化
-        const pathPoints = this.brushPath.slice();
+        const pathPoints = this.data.brushPath.slice();
         
         ctx.clip();
         

@@ -1,33 +1,96 @@
 .container {
-  padding: 20rpx;
+  padding: var(--page-padding);
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+.video-card {
+  width: 92%;
+  margin-bottom: var(--spacing-lg);
+}
+
+.video-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background-color: var(--bg-secondary);
+  margin-top: var(--spacing-md);
 }
 
 .video-player {
   width: 100%;
   height: 500rpx;
-  margin-bottom: 40rpx;
+  background-color: #000;
+}
+
+.video-info {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: var(--text-color-light);
+  margin-right: var(--spacing-xs);
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: var(--text-color);
+  font-weight: 500;
 }
 
 .action-buttons {
-  width: 100%;
+  width: 92%;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
 }
 
 .save-btn, .share-btn {
-  width: 45%;
+  width: 48%;
   margin: 0;
+  height: 90rpx;
 }
 
 .save-btn {
-  background-color: #07c160;
-  color: white;
+  background: var(--primary-gradient);
 }
 
 .share-btn {
-  background-color: #1989fa;
-  color: white;
+  background: linear-gradient(135deg, var(--accent-color), #5dade2);
+}
+
+.tip-box {
+  width: 92%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--card-radius);
+  margin-top: var(--spacing-md);
+}
+
+.tip-icon {
+  margin-right: var(--spacing-sm);
+  font-size: 28rpx;
+}
+
+.tip-text {
+  font-size: 26rpx;
+  color: var(--text-color-light);
 } 
