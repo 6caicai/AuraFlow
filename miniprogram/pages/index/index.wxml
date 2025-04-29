@@ -8,7 +8,7 @@
     <view class="step-line"></view>
     <view class="step {{selectedArea ? 'step-done' : (tempImagePath ? 'step-current' : '')}}">
       <view class="step-icon">2</view>
-      <view class="step-text">选择区域</view>
+      <view class="step-text">画出区域</view>
     </view>
     <view class="step-line"></view>
     <view class="step {{isAnimating ? 'step-done' : (selectedArea ? 'step-current' : '')}}">
@@ -37,25 +37,14 @@
         class="canvas"
         style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
         bindtouchstart="onCanvasTouchStart"
-        bindtouchmove="onCanvasTouchMove"
+        catchtouchmove="onCanvasTouchMove"
         bindtouchend="onCanvasTouchEnd">
       </canvas>
     </view>
     
-    <view class="selection-info" wx:if="{{selectedArea}}">
-      <view class="info-item">
-        <text class="info-label">位置:</text>
-        <text class="info-value">({{selectedArea.x}}, {{selectedArea.y}})</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">尺寸:</text>
-        <text class="info-value">{{selectedArea.width}} x {{selectedArea.height}}</text>
-      </view>
-    </view>
-    
     <view class="button-group">
       <button class="btn {{isSelecting ? 'btn-active' : ''}}" bindtap="startSelection">
-        {{isSelecting ? '完成选择' : '选择区域'}}
+        {{isSelecting ? '完成选择' : '画出区域'}}
       </button>
       <button class="btn btn-outline" bindtap="clearSelection" wx:if="{{selectedArea}}">清除选择</button>
     </view>
