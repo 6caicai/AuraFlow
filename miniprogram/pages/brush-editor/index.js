@@ -681,25 +681,36 @@ Page({
       const centerX = bounds.x + bounds.width/2;
       const centerY = bounds.y + bounds.height/2;
       
-      // 应用扭曲效果参数 - 使用更多的变量来创建更自然的水波效果
-      const maxAmplitude = strength * 2.8; // 最大变形幅度
-      const frequency = 0.1 + progress * 0.05; // 动态变化的波纹频率
+      // 应用扭曲效果参数 - 上下两层独立图层不断变形
+      const maxAmplitude = strength * 1.2; // 减小变形幅度
       const phase = progress * Math.PI * 2; // 相位变化
       
-      // 使用更精细的网格进行变形 - 更小的尺寸提供更高质量的效果
-      const gridSize = 3; // 更小的网格尺寸提高效果质量
+      // 使用更精细的网格进行变形
+      const gridSize = 2; // 更小的网格尺寸提高效果质量
       
-      // 创建临时画布，用于扭曲处理
-      const tempCanvas = wx.createOffscreenCanvas({
+      // 创建两个临时画布，分别用于上层和下层
+      const tempCanvas1 = wx.createOffscreenCanvas({
         type: '2d',
         width: this.data.canvasWidth,
         height: this.data.canvasHeight
       });
       
-      const tempCtx = tempCanvas.getContext('2d');
+      const tempCanvas2 = wx.createOffscreenCanvas({
+        type: '2d',
+        width: this.data.canvasWidth,
+        height: this.data.canvasHeight
+      });
       
-      // 将当前画布内容复制到临时画布
-      tempCtx.drawImage(
+      const tempCtx1 = tempCanvas1.getContext('2d');
+      const tempCtx2 = tempCanvas2.getContext('2d');
+      
+      // 将当前画布内容复制到两个临时画布
+      tempCtx1.drawImage(
+        this.canvas,
+        0, 0, this.data.canvasWidth, this.data.canvasHeight
+      );
+      
+      tempCtx2.drawImage(
         this.canvas,
         0, 0, this.data.canvasWidth, this.data.canvasHeight
       );
@@ -707,41 +718,69 @@ Page({
       // 清除原画布选区内容，准备绘制扭曲效果
       ctx.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
       
-      // 遍历选区内的每个小网格进行扭曲变形处理
+      // 上层图层移动效果
+      const upperOffset = Math.sin(phase) * maxAmplitude;
+      
+      // 下层图层移动效果 - 使用不同相位
+      const lowerOffset = Math.sin(phase + Math.PI) * maxAmplitude;
+      
+      // 设置混合透明度
+      ctx.save();
+      ctx.globalAlpha = 0.85;  // 增加透明度让效果更微妙
+      
+      // 处理上层图层 - 整体应用水平位移
       for (let y = bounds.y; y < bounds.y + bounds.height; y += gridSize) {
         for (let x = bounds.x; x < bounds.x + bounds.width; x += gridSize) {
-          // 计算网格中心到选区中心的距离和角度
-          const dx = x - centerX;
-          const dy = y - centerY;
-          const distance = Math.sqrt(dx*dx + dy*dy);
-          const angle = Math.atan2(dy, dx);
+          // 计算到边缘的距离因子，使边缘更平滑
+          // 使用边缘平滑因子的平方，让边缘更加平滑
+          const edgeFactorRaw = this.calculateEdgeFactor(x, y, path);
+          const edgeFactor = edgeFactorRaw * edgeFactorRaw;
           
-          // 计算径向扭曲变形因子，加入更多随机性效果
-          const radialFactor = Math.max(0, 1 - distance/(bounds.width/1.8));
+          // 简化的水平扭曲
+          const distortionX = upperOffset * edgeFactor;
           
-          // 计算扭曲偏移量 - 使用多个正弦/余弦函数叠加创造更自然的水波效果
-          let distortionX = Math.sin(distance * frequency + phase + angle) * maxAmplitude * radialFactor;
-          distortionX += Math.cos(distance * frequency * 0.7 + phase * 1.3) * maxAmplitude * 0.3 * radialFactor;
+          // 微小的垂直波动，让效果更自然
+          const distortionY = Math.sin((x - bounds.x) * 0.02 + phase * 0.5) * maxAmplitude * 0.1 * edgeFactor;
           
-          let distortionY = Math.cos(distance * frequency + phase - angle) * maxAmplitude * radialFactor;
-          distortionY += Math.sin(distance * frequency * 0.8 - phase * 1.1) * maxAmplitude * 0.4 * radialFactor;
-          
-          // 距离边缘处减少扭曲量，防止边缘撕裂
-          const edgeFactor = this.calculateEdgeFactor(x, y, path);
-          distortionX *= edgeFactor;
-          distortionY *= edgeFactor;
-          
-          // 应用扭曲变形，从临时画布采样并绘制到原画布
+          // 应用扭曲变形，绘制上层图层
           ctx.drawImage(
-            tempCanvas,
+            tempCanvas1,
             x, y, gridSize, gridSize, // 源矩形
             x + distortionX, y + distortionY, gridSize, gridSize // 目标矩形，带扭曲偏移
           );
         }
       }
       
-      // 添加边缘高光，增强水波效果
-      this.addLiquidEdgeEffect(ctx, path, progress);
+      // 改变混合模式以创建两层叠加效果
+      ctx.globalCompositeOperation = 'soft-light'; // 使用更柔和的混合模式
+      ctx.globalAlpha = 0.75;
+      
+      // 处理下层图层 - 使用不同的扭曲效果
+      for (let y = bounds.y; y < bounds.y + bounds.height; y += gridSize) {
+        for (let x = bounds.x; x < bounds.x + bounds.width; x += gridSize) {
+          // 边缘平滑因子
+          const edgeFactorRaw = this.calculateEdgeFactor(x, y, path);
+          const edgeFactor = edgeFactorRaw * edgeFactorRaw; // 平方处理，增强边缘平滑效果
+          
+          // 简化的水平扭曲 - 使用不同相位
+          const distortionX = lowerOffset * edgeFactor;
+          
+          // 最小的垂直波动 - 创造微妙的错位感
+          const distortionY = Math.cos((x - bounds.x) * 0.02 + phase * 0.6) * maxAmplitude * 0.1 * edgeFactor;
+          
+          // 应用扭曲变形，绘制下层图层
+          ctx.drawImage(
+            tempCanvas2,
+            x, y, gridSize, gridSize, // 源矩形 
+            x + distortionX, y + distortionY, gridSize, gridSize // 目标矩形，带扭曲偏移
+          );
+        }
+      }
+      
+      ctx.restore();
+      
+      // 添加边缘过渡效果
+      this.addEdgeTransition(ctx, path, progress);
       
     } catch (error) {
       console.error('应用扭曲效果失败:', error);
@@ -766,7 +805,56 @@ Page({
     ctx.clip();
   },
   
-  // 计算点到路径边缘的因子 (0-1), 越靠近边缘值越小
+  // 添加边缘过渡效果
+  addEdgeTransition: function(ctx, path, progress) {
+    if (!path || path.length < 3) return;
+    
+    // 设置边缘效果的样式
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.2; // 降低透明度，使效果更微妙
+    
+    // 绘制内发光效果
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    
+    for (let i = 1; i < path.length; i++) {
+      ctx.lineTo(path[i].x, path[i].y);
+    }
+    
+    ctx.closePath();
+    
+    // 获取边界信息
+    const bounds = this.calculateBoundingBox(path);
+    
+    try {
+      // 使用简单的颜色填充，而不是渐变
+      const hue1 = (200 + progress * 20) % 360; // 第一层颜色（偏蓝）
+      const hue2 = (160 + progress * 20) % 360; // 第二层颜色（偏绿）
+      
+      // 第一次填充
+      ctx.fillStyle = `hsla(${hue1}, 70%, 60%, 0.2)`;
+      ctx.fill();
+      
+      // 添加边缘线条
+      ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+      
+      // 第二次轻微填充，使用不同颜色
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = `hsla(${hue2}, 70%, 60%, 0.1)`;
+      ctx.fill();
+      
+    } catch (error) {
+      console.error('创建边缘效果失败:', error);
+      // 降级方案
+      ctx.fillStyle = 'rgba(100, 200, 255, 0.05)';
+      ctx.fill();
+    }
+  },
+  
+  // 计算边缘平滑因子 - 改进版本，更加平滑
   calculateEdgeFactor: function(x, y, path) {
     if (!path || path.length < 3) return 1.0;
     
@@ -783,12 +871,15 @@ Page({
         minDistance = Math.min(minDistance, distance);
       }
       
-      // 边缘检测阈值 - 使其与线宽相关
-      const edgeThreshold = 12;
+      // 边缘检测阈值 - 设置得更大以获得更平滑的边缘过渡
+      const edgeThreshold = 20;
       
-      // 软化边缘过渡 - 使用平滑的过渡函数
+      // 软化边缘过渡 - 使用更平滑的函数
       const normalizedDist = Math.min(1, minDistance / edgeThreshold);
-      return Math.sin(normalizedDist * Math.PI/2); // 使用正弦函数创造更平滑的过渡
+      
+      // 使用三次平滑函数创造更平滑的过渡
+      return normalizedDist * normalizedDist * normalizedDist * 
+             (10 + normalizedDist * (-15 + normalizedDist * 6));
     } catch (error) {
       console.error('边缘因子计算失败:', error);
       return 1.0; // 出错时返回安全值
@@ -827,195 +918,5 @@ Page({
     const dy = py - yy;
     
     return Math.sqrt(dx * dx + dy * dy);
-  },
-  
-  // 添加液体边缘效果
-  addLiquidEdgeEffect: function(ctx, path, progress) {
-    if (!path || path.length < 3) return;
-    
-    // 设置边缘效果的样式
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.3;
-    
-    // 绘制内发光效果
-    ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    
-    for (let i = 1; i < path.length; i++) {
-      ctx.lineTo(path[i].x, path[i].y);
-    }
-    
-    ctx.closePath();
-    
-    // 创建渐变
-    const bounds = this.calculateBoundingBox(path);
-    const centerX = bounds.x + bounds.width/2;
-    const centerY = bounds.y + bounds.height/2;
-    
-    try {
-      // 创建径向渐变
-      const gradient = ctx.createRadialGradient(
-        centerX, centerY, 0,                    // 内圆
-        centerX, centerY, bounds.width/1.5      // 外圆
-      );
-      
-      // 动态变化的高光颜色 - 使用动态变化的色相创造彩虹效果
-      const baseHue = 190; // 蓝色基调
-      const hue1 = (baseHue + progress * 40) % 360;
-      const hue2 = (baseHue + 30 + progress * 40) % 360;
-      const hue3 = (baseHue + 60 + progress * 40) % 360;
-      
-      // 多级渐变创造更丰富的效果
-      gradient.addColorStop(0, `hsla(${hue1}, 95%, 75%, 0.5)`);      // 内部较亮
-      gradient.addColorStop(0.4, `hsla(${hue2}, 90%, 65%, 0.3)`);    // 中间过渡
-      gradient.addColorStop(0.7, `hsla(${hue3}, 85%, 60%, 0.15)`);   // 中外过渡
-      gradient.addColorStop(1, `hsla(${hue1}, 80%, 50%, 0.05)`);     // 边缘几乎透明
-      
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      
-      // 添加边缘高光线
-      ctx.strokeStyle = `hsla(${hue1}, 90%, 75%, 0.4)`;
-      ctx.lineWidth = 2.0;
-      ctx.stroke();
-      
-      // 添加二次边缘高光，增强水波立体感
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.15;
-      ctx.lineWidth = 1.0;
-      ctx.strokeStyle = `hsla(${hue2}, 100%, 85%, 0.6)`;
-      ctx.stroke();
-      
-      // 绘制水波纹小点和气泡
-      this.drawWaterDroplets(ctx, path, bounds, progress);
-      
-    } catch (error) {
-      console.error('创建渐变失败:', error);
-      // 降级方案
-      ctx.fillStyle = 'rgba(0, 150, 255, 0.1)';
-      ctx.fill();
-    }
-  },
-  
-  // 绘制水波纹小点，增强液体感
-  drawWaterDroplets: function(ctx, path, bounds, progress) {
-    const dropletCount = 8;        // 增加小水滴数量
-    const bubbleCount = 5;         // 添加气泡
-    
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    
-    // 创建一个裁剪区域，确保小点只出现在路径内部
-    ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    
-    for (let i = 1; i < path.length; i++) {
-      ctx.lineTo(path[i].x, path[i].y);
-    }
-    
-    ctx.closePath();
-    ctx.clip();
-    
-    // 在路径内随机位置绘制小水滴
-    const centerX = bounds.x + bounds.width/2;
-    const centerY = bounds.y + bounds.height/2;
-    
-    // 绘制水滴光点
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-    for (let i = 0; i < dropletCount; i++) {
-      // 使用正弦余弦函数计算位置，使小点在区域内移动
-      const angle = (i / dropletCount) * Math.PI * 2;
-      const distanceMax = bounds.width * 0.4;
-      const distance = distanceMax * (0.3 + Math.random() * 0.7);
-      
-      const dropX = centerX + Math.cos(angle + progress * Math.PI * 2) * distance;
-      const dropY = centerY + Math.sin(angle + progress * Math.PI * 2) * distance;
-      
-      // 只有通过边缘检测的水滴才会被绘制
-      if (this.isPointInPath(dropX, dropY, path)) {
-        // 绘制椭圆形小水滴，更加逼真
-        const sizeX = 3 * (0.7 + Math.random() * 0.7);
-        const sizeY = sizeX * (1.2 + Math.random() * 0.4); // 稍微拉长
-        const rotation = Math.random() * Math.PI;
-        
-        ctx.save();
-        ctx.translate(dropX, dropY);
-        ctx.rotate(rotation);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, sizeX, sizeY, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-    
-    // 绘制半透明气泡
-    ctx.globalAlpha = 0.3;
-    const gradientBubbles = Array(bubbleCount).fill().map((_, i) => {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = bounds.width * 0.3 * Math.random();
-      return {
-        x: centerX + Math.cos(angle) * distance,
-        y: centerY + Math.sin(angle) * distance,
-        size: 6 + Math.random() * 8,
-        hue: Math.floor(190 + Math.random() * 40),
-        phase: Math.random() * Math.PI * 2
-      };
-    });
-    
-    // 为每个气泡创建径向渐变
-    for (const bubble of gradientBubbles) {
-      // 动态移动气泡位置
-      const bubbleX = bubble.x + Math.sin(progress * Math.PI * 2 + bubble.phase) * 5;
-      const bubbleY = bubble.y + Math.cos(progress * Math.PI * 2 + bubble.phase) * 5;
-      
-      if (this.isPointInPath(bubbleX, bubbleY, path)) {
-        try {
-          // 为气泡创建渐变
-          const bubbleGradient = ctx.createRadialGradient(
-            bubbleX - bubble.size * 0.3, bubbleY - bubble.size * 0.3, 0,
-            bubbleX, bubbleY, bubble.size
-          );
-          
-          bubbleGradient.addColorStop(0, `hsla(${bubble.hue}, 100%, 90%, 0.7)`);
-          bubbleGradient.addColorStop(0.5, `hsla(${bubble.hue}, 100%, 80%, 0.4)`);
-          bubbleGradient.addColorStop(1, `hsla(${bubble.hue}, 90%, 70%, 0)`);
-          
-          ctx.fillStyle = bubbleGradient;
-          ctx.beginPath();
-          ctx.arc(bubbleX, bubbleY, bubble.size, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // 添加高光点
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.beginPath();
-          ctx.arc(
-            bubbleX - bubble.size * 0.3,
-            bubbleY - bubble.size * 0.3,
-            bubble.size * 0.15,
-            0, Math.PI * 2
-          );
-          ctx.fill();
-        } catch (error) {
-          console.error('气泡渐变创建失败:', error);
-        }
-      }
-    }
-    
-    ctx.restore();
-  },
-  
-  // 检查点是否在路径内
-  isPointInPath: function(x, y, path) {
-    // 射线检测算法
-    let inside = false;
-    for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
-      const xi = path[i].x, yi = path[i].y;
-      const xj = path[j].x, yj = path[j].y;
-      
-      const intersect = ((yi > y) != (yj > y)) && 
-                         (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
   },
 }); 

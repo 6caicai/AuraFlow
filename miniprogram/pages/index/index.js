@@ -389,14 +389,13 @@ Page({
     
     const ctx = this.data.canvasContext;
     const { x, y, width, height } = this.imageInfo;
-    const strength = this.data.distortionStrength * 0.5;
+    const strength = this.data.distortionStrength * 0.25; // 减小扭曲幅度
     
     // 获取选区范围，如果没有选择则使用整个图像
     const area = this.data.selectedArea || { x, y, width, height };
     
-    // 计算简单的波动偏移
-    const offsetX = Math.sin(this.animationPosition) * strength;
-    const offsetY = Math.cos(this.animationPosition * 1.3) * strength;
+    // 相位计算
+    const phase = this.animationPosition;
     
     // 重新加载图片并绘制
     wx.getImageInfo({
@@ -459,50 +458,74 @@ Page({
               );
             }
             
-            // 绘制动态效果区域（多次叠加偏移的图像）
-            for (let i = -1; i <= 1; i += 0.5) {
-              // 计算偏移
-              const shiftX = offsetX * i;
-              const shiftY = offsetY * i;
-              
-              // 绘制偏移的图像
-              ctx.drawImage(
-                img, 
-                sourceX, 
-                sourceY, 
-                sourceWidth, 
-                sourceHeight,
-                area.x + shiftX, 
-                area.y + shiftY, 
-                area.width, 
-                area.height
-              );
-            }
+            // 应用两层图像效果，但减小扭曲幅度
+            const maxAmplitude = strength * 2;
             
-            // 添加边框提示效果区域
-            ctx.strokeStyle = 'rgba(255, 68, 68, 0.7)';
-            ctx.lineWidth = Math.max(1, strength * 0.3);
+            // 第一层 - 主要移动效果
+            const upperOffset = Math.sin(phase) * maxAmplitude;
+            ctx.save();
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(
+              img, 
+              sourceX, sourceY, 
+              sourceWidth, sourceHeight,
+              area.x + upperOffset, area.y, 
+              area.width, area.height
+            );
+            
+            // 第二层 - 使用不同的移动方向和更柔和的混合模式
+            const lowerOffset = Math.sin(phase + Math.PI) * maxAmplitude;
+            ctx.globalCompositeOperation = 'soft-light';
+            ctx.globalAlpha = 0.75;
+            ctx.drawImage(
+              img, 
+              sourceX, sourceY, 
+              sourceWidth, sourceHeight,
+              area.x + lowerOffset, area.y, 
+              area.width, area.height
+            );
+            
+            ctx.restore();
+            
+            // 添加细微的边框效果
+            ctx.strokeStyle = 'rgba(0, 150, 255, 0.6)';
+            ctx.lineWidth = 1.5;
             ctx.strokeRect(
-              area.x + offsetX * 0.5, 
-              area.y + offsetY * 0.5, 
+              area.x, 
+              area.y, 
               area.width, 
               area.height
             );
           } else {
-            // 如果没有选择区域，对整个图像应用简单动画效果
-            // 先绘制原图
-            ctx.drawImage(img, x, y, width, height);
+            // 如果没有选择区域，对整个图像应用效果
+            // 清除画布
+            ctx.clearRect(x, y, width, height);
             
-            // 再叠加偏移的半透明图像
-            ctx.globalAlpha = 0.5;
+            // 绘制第一层
+            const upperOffset = Math.sin(phase) * strength * 2;
+            ctx.save();
+            ctx.globalAlpha = 0.85;
             ctx.drawImage(
-              img,
-              x + offsetX * 0.3,
-              y + offsetY * 0.3,
-              width,
-              height
+              img, 
+              0, 0, 
+              res.width, res.height,
+              x + upperOffset, y, 
+              width, height
             );
-            ctx.globalAlpha = 1.0;
+            
+            // 绘制第二层，使用更柔和的混合
+            const lowerOffset = Math.sin(phase + Math.PI) * strength * 2;
+            ctx.globalCompositeOperation = 'soft-light';
+            ctx.globalAlpha = 0.75;
+            ctx.drawImage(
+              img, 
+              0, 0, 
+              res.width, res.height,
+              x + lowerOffset, y, 
+              width, height
+            );
+            
+            ctx.restore();
           }
         };
         img.src = this.data.tempImagePath;

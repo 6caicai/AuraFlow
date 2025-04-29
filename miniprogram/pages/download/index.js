@@ -572,44 +572,80 @@ Page({
             maxY = Math.max(maxY, brushPath[i].y);
           }
           
+          // 选区尺寸和中心点
           const selectionWidth = maxX - minX;
           const selectionHeight = maxY - minY;
           
-          // 创建更丰富多彩的波纹效果
-          const amplitude = 10 * Math.sin(progress * Math.PI); // 波幅
-          const frequency = 6 * Math.PI; // 频率
-          const phase = progress * 2 * Math.PI; // 相位
+          // 相位和扭曲强度
+          const phase = progress * 2 * Math.PI;
+          const strength = 4; // 减小扭曲强度
           
-          // 为三个颜色通道使用不同的波纹参数
-          const colors = ['rgba(255,0,0,0.7)', 'rgba(0,255,0,0.7)', 'rgba(0,0,255,0.7)'];
+          // 清除选区内容，准备重新绘制
+          ctx.clearRect(minX, minY, selectionWidth, selectionHeight);
           
-          for (let i = 0; i < 3; i++) {
-            const xShift = amplitude * Math.sin(phase + i * Math.PI * 2/3) * 0.8;
-            const yShift = amplitude * Math.cos(phase + i * Math.PI * 2/3) * 0.8;
+          // 第一层图层移动效果
+          const upperOffset = Math.sin(phase) * strength;
+          
+          if (this.imageInfo) {
+            const { x, y, width, height } = this.imageInfo;
             
-            ctx.globalAlpha = 0.7;
-            ctx.globalCompositeOperation = 'screen';
-            ctx.fillStyle = colors[i];
+            // 计算选区在图像上的相对位置
+            const relMinX = (minX - x) / width;
+            const relMinY = (minY - y) / height;
+            const relWidth = selectionWidth / width;
+            const relHeight = selectionHeight / height;
             
-            // 在选区内绘制偏移的图像
-            if (this.imageInfo) {
-              const { x, y, width, height } = this.imageInfo;
-              ctx.drawImage(
-                img, 
-                x + xShift, 
-                y + yShift, 
-                width, 
-                height
-              );
-            } else {
-              ctx.drawImage(
-                img, 
-                xShift, 
-                yShift, 
-                this.data.canvasWidth, 
-                this.data.canvasHeight
-              );
-            }
+            // 绘制第一层图层
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(
+              img,
+              x + width * relMinX, 
+              y + height * relMinY,
+              width * relWidth,
+              height * relHeight,
+              minX + upperOffset,
+              minY,
+              selectionWidth,
+              selectionHeight
+            );
+            
+            // 绘制第二层图层，使用不同混合模式和相位
+            const lowerOffset = Math.sin(phase + Math.PI) * strength;
+            ctx.globalCompositeOperation = 'soft-light';
+            ctx.globalAlpha = 0.75;
+            ctx.drawImage(
+              img,
+              x + width * relMinX, 
+              y + height * relMinY,
+              width * relWidth,
+              height * relHeight,
+              minX + lowerOffset,
+              minY,
+              selectionWidth,
+              selectionHeight
+            );
+          } else {
+            // 如果没有imageInfo，简单绘制
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(
+              img,
+              0, 0,
+              this.data.canvasWidth, this.data.canvasHeight,
+              minX + upperOffset, minY,
+              selectionWidth, selectionHeight
+            );
+            
+            // 第二层
+            ctx.globalCompositeOperation = 'soft-light';
+            ctx.globalAlpha = 0.75;
+            const lowerOffset = Math.sin(phase + Math.PI) * strength;
+            ctx.drawImage(
+              img,
+              0, 0,
+              this.data.canvasWidth, this.data.canvasHeight,
+              minX + lowerOffset, minY,
+              selectionWidth, selectionHeight
+            );
           }
           
           // 恢复状态
@@ -617,8 +653,8 @@ Page({
           
           // 绘制选区边框
           ctx.save();
-          ctx.strokeStyle = 'rgba(0, 150, 255, 0.8)';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(0, 150, 255, 0.7)';
+          ctx.lineWidth = 1.5;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
