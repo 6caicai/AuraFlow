@@ -1,14 +1,14 @@
 <!--brush-editor.wxml-->
 <view class="container">
-  <view class="header">
-    <view class="title">画笔选择区域</view>
+  <view class="header fade-in">
+    <view class="title">画笔选择工具</view>
     <view class="subtitle">请在图片上用画笔圈出要处理的区域</view>
   </view>
   
   <view class="canvas-container">
     <canvas 
       type="2d" 
-      id="editorCanvas" 
+      id="myCanvas" 
       class="canvas"
       style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
       bindtouchstart="onCanvasTouchStart"
@@ -18,15 +18,31 @@
   </view>
   
   <view class="control-section">
-    <text wx:if="{{isDrawing}}" class="selection-tip">正在绘制区域...</text>
-    <text wx:elif="{{selectedArea}}" class="selection-tip">已选择区域</text>
-    <text wx:else class="selection-tip">请在图片上画出要处理的区域</text>
+    <view class="selection-status">
+      <view wx:if="{{isDrawing}}" class="selection-tip">
+        <text class="tip-icon">✏️</text> 正在绘制区域...
+      </view>
+      <view wx:elif="{{selectedArea}}" class="selection-tip">
+        <text class="tip-icon">✅</text> 区域已选择完成
+      </view>
+      <view wx:else class="selection-tip">
+        <text class="tip-icon">👆</text> 请在图片上画出要处理的区域
+      </view>
+    </view>
     
     <view class="button-group">
-      <button class="action-btn clear-btn" bindtap="clearSelection" wx:if="{{selectedArea}}">重新绘制</button>
-      <button class="action-btn back-btn" bindtap="goBack">返回</button>
-      <button class="action-btn animate-btn" bindtap="generateAnimation" disabled="{{!selectedArea}}">生成动画</button>
-      <button class="action-btn next-btn" bindtap="finishEditing" disabled="{{!selectedArea}}">完成</button>
+      <button class="action-btn clear-btn" bindtap="clearSelection" wx:if="{{selectedArea}}">
+        <text class="btn-icon">🔄</text> 重新绘制
+      </button>
+      <button class="action-btn back-btn" bindtap="goBack">
+        <text class="btn-icon">◀️</text> 返回
+      </button>
+      <button class="action-btn animate-btn" bindtap="generateAnimation" disabled="{{!selectedArea}}">
+        <text class="btn-icon">✨</text> 生成动画
+      </button>
+      <button class="action-btn next-btn" bindtap="finishEditing" disabled="{{!selectedArea}}">
+        <text class="btn-icon">✓</text> 完成
+      </button>
     </view>
   </view>
 </view> 

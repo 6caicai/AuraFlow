@@ -457,19 +457,47 @@ Page({
     if (!this.data.selectedArea || !this.brushPath) {
       wx.showToast({
         title: '请先画出选择区域',
-        icon: 'none'
+        icon: 'none',
+        duration: 2000
       });
       return;
     }
   
     // 创建帧序列
     const frameUrls = [];
-    const numFrames = 20; // 增加帧数以获得更流畅的效果
+    const numFrames = 24; // 增加帧数以获得更流畅的效果
     
     wx.showLoading({
-      title: '生成帧序列...',
+      title: '准备生成动画...',
       mask: true
     });
+    
+    // 添加动画生成进度提示
+    let progressTimer = null;
+    const startProgressTips = () => {
+      let progress = 0;
+      const messages = [
+        '正在计算波纹效果...',
+        '正在处理水流动画...',
+        '应用液体特效中...',
+        '优化图像质量...',
+        '即将完成...'
+      ];
+      progressTimer = setInterval(() => {
+        progress += 5;
+        if (progress <= 100) {
+          wx.showLoading({
+            title: messages[Math.floor(progress / 25)] || '生成中...',
+            mask: true
+          });
+        } else {
+          clearInterval(progressTimer);
+        }
+      }, 300);
+    };
+    
+    // 启动进度提示
+    startProgressTips();
     
     // 生成帧序列的函数
     const generateFrames = async () => {
@@ -481,21 +509,20 @@ Page({
           const frame = await this.generateFrame(i, numFrames);
           if (frame) {
             validFrames.push(frame);
-            // 更新进度
-            if (i % 3 === 0) {
-              wx.showLoading({
-                title: `生成中 ${Math.floor((i + 1) / numFrames * 100)}%`,
-                mask: true
-              });
-            }
           }
+        }
+        
+        // 清除进度计时器
+        if (progressTimer) {
+          clearInterval(progressTimer);
         }
         
         if (validFrames.length === 0) {
           wx.hideLoading();
           wx.showToast({
-            title: '生成帧序列失败',
-            icon: 'none'
+            title: '生成动画失败',
+            icon: 'none',
+            duration: 2000
           });
           return;
         }
@@ -506,7 +533,7 @@ Page({
         const frameData = {
           frameUrls: validFrames,
           frameCount: validFrames.length,
-          duration: validFrames.length * 100 // 每帧100ms，确保流畅的动画效果
+          duration: validFrames.length * 80 // 每帧80ms，确保更流畅的动画效果
         };
         
         // 使用双重编码确保JSON数据安全传递
@@ -514,22 +541,42 @@ Page({
         
         wx.hideLoading();
         
-        // 直接跳转到动画页面，不再调用云函数
-        wx.navigateTo({
-          url: `/pages/animation/animation?frameData=${encodedData}`
+        // 显示成功提示
+        wx.showToast({
+          title: '动画生成成功！',
+          icon: 'success',
+          duration: 1500,
+          mask: true,
+          success: () => {
+            // 成功提示后跳转到动画页面
+            setTimeout(() => {
+              wx.navigateTo({
+                url: `/pages/animation/animation?frameData=${encodedData}`
+              });
+            }, 1000);
+          }
         });
       } catch (error) {
+        // 清除进度计时器
+        if (progressTimer) {
+          clearInterval(progressTimer);
+        }
+        
         wx.hideLoading();
         console.error('生成帧序列失败:', error);
         wx.showToast({
-          title: '生成帧序列失败',
-          icon: 'none'
+          title: '生成动画失败',
+          icon: 'none',
+          duration: 2000
         });
       }
     };
     
-    // 开始生成帧
-    generateFrames();
+    // 延迟一点再开始生成，让用户看到准备提示
+    setTimeout(() => {
+      // 开始生成帧
+      generateFrames();
+    }, 800);
   },
 
   // 为动画生成单个帧
@@ -544,15 +591,15 @@ Page({
           return;
         }
         
-        // 计算当前帧的效果参数 - 使用平滑的进度变化
+        // 计算当前帧的效果参数 - 使用更平滑的进度变化
         const progress = frameIndex / (totalFrames - 1);
         
-        // 使用正弦函数创建循环变化
-        const cyclePosition = Math.sin(progress * Math.PI * 2);
+        // 使用改进的正弦函数创建更自然的循环变化
+        const cyclePosition = Math.sin(progress * Math.PI * 2 + Math.cos(progress * Math.PI));
         const normProgress = (cyclePosition + 1) / 2; // 归一化到0-1范围
         
-        // 设计更自然的扭曲强度变化
-        const distortionStrength = 3 + Math.sin(progress * Math.PI * 2) * 2.5;
+        // 设计更自然的扭曲强度变化 - 随时间变化更丰富
+        const distortionStrength = 4 + Math.sin(progress * Math.PI * 2) * 3 + Math.cos(progress * Math.PI * 3) * 1.5;
         
         // 清除画布
         ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
@@ -564,6 +611,10 @@ Page({
           img.onload = () => {
             // 绘制背景图
             if (this.imageInfo) {
+              // 先绘制白色背景
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+              
               ctx.drawImage(
                 img,
                 this.imageInfo.x, this.imageInfo.y, 
@@ -581,6 +632,7 @@ Page({
               wx.canvasToTempFilePath({
                 canvas: this.canvas,
                 fileType: 'png',
+                quality: 0.9,
                 destWidth: this.data.canvasWidth * 2,
                 destHeight: this.data.canvasHeight * 2,
                 success: (res) => {
@@ -629,13 +681,13 @@ Page({
       const centerX = bounds.x + bounds.width/2;
       const centerY = bounds.y + bounds.height/2;
       
-      // 应用扭曲效果参数
-      const maxAmplitude = strength * 2.5; // 最大变形幅度
-      const frequency = 0.08; // 波纹频率
+      // 应用扭曲效果参数 - 使用更多的变量来创建更自然的水波效果
+      const maxAmplitude = strength * 2.8; // 最大变形幅度
+      const frequency = 0.1 + progress * 0.05; // 动态变化的波纹频率
       const phase = progress * Math.PI * 2; // 相位变化
       
-      // 使用更精细的网格进行变形
-      const gridSize = 4; // 更小的网格尺寸提高效果质量
+      // 使用更精细的网格进行变形 - 更小的尺寸提供更高质量的效果
+      const gridSize = 3; // 更小的网格尺寸提高效果质量
       
       // 创建临时画布，用于扭曲处理
       const tempCanvas = wx.createOffscreenCanvas({
@@ -664,12 +716,15 @@ Page({
           const distance = Math.sqrt(dx*dx + dy*dy);
           const angle = Math.atan2(dy, dx);
           
-          // 计算径向扭曲变形
-          const radialFactor = Math.max(0, 1 - distance/(bounds.width/2));
+          // 计算径向扭曲变形因子，加入更多随机性效果
+          const radialFactor = Math.max(0, 1 - distance/(bounds.width/1.8));
           
-          // 计算扭曲偏移量
+          // 计算扭曲偏移量 - 使用多个正弦/余弦函数叠加创造更自然的水波效果
           let distortionX = Math.sin(distance * frequency + phase + angle) * maxAmplitude * radialFactor;
+          distortionX += Math.cos(distance * frequency * 0.7 + phase * 1.3) * maxAmplitude * 0.3 * radialFactor;
+          
           let distortionY = Math.cos(distance * frequency + phase - angle) * maxAmplitude * radialFactor;
+          distortionY += Math.sin(distance * frequency * 0.8 - phase * 1.1) * maxAmplitude * 0.4 * radialFactor;
           
           // 距离边缘处减少扭曲量，防止边缘撕裂
           const edgeFactor = this.calculateEdgeFactor(x, y, path);
@@ -780,7 +835,7 @@ Page({
     
     // 设置边缘效果的样式
     ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = 0.25;
+    ctx.globalAlpha = 0.3;
     
     // 绘制内发光效果
     ctx.beginPath();
@@ -801,30 +856,37 @@ Page({
       // 创建径向渐变
       const gradient = ctx.createRadialGradient(
         centerX, centerY, 0,                    // 内圆
-        centerX, centerY, bounds.width/2        // 外圆
+        centerX, centerY, bounds.width/1.5      // 外圆
       );
       
-      // 动态变化的高光颜色
+      // 动态变化的高光颜色 - 使用动态变化的色相创造彩虹效果
       const baseHue = 190; // 蓝色基调
-      const hue1 = (baseHue + progress * 30) % 360;
-      const hue2 = (baseHue + 30 + progress * 30) % 360;
+      const hue1 = (baseHue + progress * 40) % 360;
+      const hue2 = (baseHue + 30 + progress * 40) % 360;
+      const hue3 = (baseHue + 60 + progress * 40) % 360;
       
-      // 内部较亮
-      gradient.addColorStop(0, `hsla(${hue1}, 90%, 70%, 0.4)`);
-      // 中间偏暗
-      gradient.addColorStop(0.6, `hsla(${hue2}, 85%, 60%, 0.1)`);
-      // 边缘几乎透明
-      gradient.addColorStop(1, `hsla(${hue1}, 80%, 50%, 0.05)`);
+      // 多级渐变创造更丰富的效果
+      gradient.addColorStop(0, `hsla(${hue1}, 95%, 75%, 0.5)`);      // 内部较亮
+      gradient.addColorStop(0.4, `hsla(${hue2}, 90%, 65%, 0.3)`);    // 中间过渡
+      gradient.addColorStop(0.7, `hsla(${hue3}, 85%, 60%, 0.15)`);   // 中外过渡
+      gradient.addColorStop(1, `hsla(${hue1}, 80%, 50%, 0.05)`);     // 边缘几乎透明
       
       ctx.fillStyle = gradient;
       ctx.fill();
       
       // 添加边缘高光线
-      ctx.strokeStyle = `hsla(${hue1}, 90%, 75%, 0.3)`;
-      ctx.lineWidth = 1.0;
+      ctx.strokeStyle = `hsla(${hue1}, 90%, 75%, 0.4)`;
+      ctx.lineWidth = 2.0;
       ctx.stroke();
       
-      // 绘制水波纹小点
+      // 添加二次边缘高光，增强水波立体感
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.15;
+      ctx.lineWidth = 1.0;
+      ctx.strokeStyle = `hsla(${hue2}, 100%, 85%, 0.6)`;
+      ctx.stroke();
+      
+      // 绘制水波纹小点和气泡
       this.drawWaterDroplets(ctx, path, bounds, progress);
       
     } catch (error) {
@@ -837,11 +899,11 @@ Page({
   
   // 绘制水波纹小点，增强液体感
   drawWaterDroplets: function(ctx, path, bounds, progress) {
-    const dropletCount = 5;
-    const radius = 3;
+    const dropletCount = 8;        // 增加小水滴数量
+    const bubbleCount = 5;         // 添加气泡
     
     ctx.save();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.globalCompositeOperation = 'screen';
     
     // 创建一个裁剪区域，确保小点只出现在路径内部
     ctx.beginPath();
@@ -858,21 +920,84 @@ Page({
     const centerX = bounds.x + bounds.width/2;
     const centerY = bounds.y + bounds.height/2;
     
+    // 绘制水滴光点
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     for (let i = 0; i < dropletCount; i++) {
       // 使用正弦余弦函数计算位置，使小点在区域内移动
       const angle = (i / dropletCount) * Math.PI * 2;
-      const distance = bounds.width * 0.3 * Math.random();
+      const distanceMax = bounds.width * 0.4;
+      const distance = distanceMax * (0.3 + Math.random() * 0.7);
       
       const dropX = centerX + Math.cos(angle + progress * Math.PI * 2) * distance;
       const dropY = centerY + Math.sin(angle + progress * Math.PI * 2) * distance;
       
       // 只有通过边缘检测的水滴才会被绘制
       if (this.isPointInPath(dropX, dropY, path)) {
-        // 绘制小水滴
-        const size = radius * (0.5 + Math.random() * 0.5);
+        // 绘制椭圆形小水滴，更加逼真
+        const sizeX = 3 * (0.7 + Math.random() * 0.7);
+        const sizeY = sizeX * (1.2 + Math.random() * 0.4); // 稍微拉长
+        const rotation = Math.random() * Math.PI;
+        
+        ctx.save();
+        ctx.translate(dropX, dropY);
+        ctx.rotate(rotation);
         ctx.beginPath();
-        ctx.arc(dropX, dropY, size, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, sizeX, sizeY, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
+      }
+    }
+    
+    // 绘制半透明气泡
+    ctx.globalAlpha = 0.3;
+    const gradientBubbles = Array(bubbleCount).fill().map((_, i) => {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = bounds.width * 0.3 * Math.random();
+      return {
+        x: centerX + Math.cos(angle) * distance,
+        y: centerY + Math.sin(angle) * distance,
+        size: 6 + Math.random() * 8,
+        hue: Math.floor(190 + Math.random() * 40),
+        phase: Math.random() * Math.PI * 2
+      };
+    });
+    
+    // 为每个气泡创建径向渐变
+    for (const bubble of gradientBubbles) {
+      // 动态移动气泡位置
+      const bubbleX = bubble.x + Math.sin(progress * Math.PI * 2 + bubble.phase) * 5;
+      const bubbleY = bubble.y + Math.cos(progress * Math.PI * 2 + bubble.phase) * 5;
+      
+      if (this.isPointInPath(bubbleX, bubbleY, path)) {
+        try {
+          // 为气泡创建渐变
+          const bubbleGradient = ctx.createRadialGradient(
+            bubbleX - bubble.size * 0.3, bubbleY - bubble.size * 0.3, 0,
+            bubbleX, bubbleY, bubble.size
+          );
+          
+          bubbleGradient.addColorStop(0, `hsla(${bubble.hue}, 100%, 90%, 0.7)`);
+          bubbleGradient.addColorStop(0.5, `hsla(${bubble.hue}, 100%, 80%, 0.4)`);
+          bubbleGradient.addColorStop(1, `hsla(${bubble.hue}, 90%, 70%, 0)`);
+          
+          ctx.fillStyle = bubbleGradient;
+          ctx.beginPath();
+          ctx.arc(bubbleX, bubbleY, bubble.size, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 添加高光点
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.beginPath();
+          ctx.arc(
+            bubbleX - bubble.size * 0.3,
+            bubbleY - bubble.size * 0.3,
+            bubble.size * 0.15,
+            0, Math.PI * 2
+          );
+          ctx.fill();
+        } catch (error) {
+          console.error('气泡渐变创建失败:', error);
+        }
       }
     }
     
