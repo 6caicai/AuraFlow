@@ -2,7 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/preview/preview",
-    "pages/login/login"
+    "pages/login/login",
+    "pages/register/register"
   ],
   "window": {
     "backgroundColor": "#f8fafe",
