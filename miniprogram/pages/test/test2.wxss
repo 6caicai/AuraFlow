@@ -1,0 +1,93 @@
+.test-container {
+  padding: 20rpx;
+  background-color: #f8f8f8;
+  min-height: 100vh;
+}
+
+.test-header {
+  margin-bottom: 30rpx;
+}
+
+.test-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.test-status {
+  font-size: 32rpx;
+  color: #666;
+}
+
+.control-section {
+  margin-bottom: 30rpx;
+}
+
+.test-button {
+  background-color: #07c160;
+  color: white;
+}
+
+.progress-section {
+  margin-bottom: 30rpx;
+}
+
+.image-container {
+  width: 300px;
+  height: 300px;
+  margin: 0 auto 30rpx;
+  position: relative;
+}
+
+.image-container image, 
+.image-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+}
+
+.results-section {
+  background-color: white;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.1);
+}
+
+.results-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+}
+
+.result-item {
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
+}
+
+.passed {
+  background-color: rgba(7, 193, 96, 0.1);
+  border-left: 6rpx solid #07c160;
+}
+
+.failed {
+  background-color: rgba(255, 87, 51, 0.1);
+  border-left: 6rpx solid #ff5733;
+}
+
+.result-name {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.result-status {
+  font-size: 28rpx;
+  margin: 10rpx 0;
+}
+
+.result-message {
+  font-size: 28rpx;
+  color: #666;
+} 

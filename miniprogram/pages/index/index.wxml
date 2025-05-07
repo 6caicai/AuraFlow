@@ -113,4 +113,20 @@
     <text class="tip-icon">💡</text>
     <text>动画效果已激活，您可以保存屏幕录制或截图分享</text>
   </view>
+  
+  <!-- 测试入口 -->
+  <view class="test-entry-section scale-in">
+    <view class="test-entry-title">测试入口</view>
+    <view class="test-entry-buttons">
+      <navigator url="/pages/test/test1" class="test-entry-btn">
+        <text>画布绘制测试</text>
+      </navigator>
+      <navigator url="/pages/test/test2" class="test-entry-btn">
+        <text>效果生成测试</text>
+      </navigator>
+      <navigator url="/pages/test/test3" class="test-entry-btn">
+        <text>动画播放测试</text>
+      </navigator>
+    </view>
+  </view>
 </view>

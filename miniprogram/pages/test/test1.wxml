@@ -1,0 +1,28 @@
+<view class="test-container">
+  <view class="test-header">
+    <text class="test-title">画布绘制功能测试</text>
+    <view class="test-status">状态: {{testStatus}}</view>
+  </view>
+  
+  <view class="control-section">
+    <button class="test-button" bindtap="startAllTests" disabled="{{testStatus === 'running'}}">开始测试</button>
+  </view>
+  
+  <view class="progress-section" wx:if="{{testStatus === 'running'}}">
+    <progress percent="{{completedTests / totalTests * 100}}" show-info stroke-width="3" />
+    <view>正在测试: {{currentTest}}</view>
+  </view>
+  
+  <view class="canvas-container">
+    <canvas type="2d" id="testCanvas" style="width: 300px; height: 300px;"></canvas>
+  </view>
+  
+  <view class="results-section">
+    <view class="results-title">测试结果：</view>
+    <view class="result-item {{item.passed ? 'passed' : 'failed'}}" wx:for="{{testResults}}" wx:key="index">
+      <view class="result-name">{{item.name}}</view>
+      <view class="result-status">{{item.passed ? '通过' : '失败'}}</view>
+      <view class="result-message">{{item.message}}</view>
+    </view>
+  </view>
+</view> 

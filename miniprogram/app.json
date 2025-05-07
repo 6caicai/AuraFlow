@@ -3,7 +3,10 @@
     "pages/index/index",
     "pages/preview/preview",
     "pages/login/login",
-    "pages/register/register"
+    "pages/register/register",
+    "pages/test/test1",
+    "pages/test/test2",
+    "pages/test/test3"
   ],
   "window": {
     "backgroundColor": "#f8fafe",
